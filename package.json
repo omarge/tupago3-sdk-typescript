@@ -1,0 +1,66 @@
+{
+  "name": "@tupago/tupago3-sdk-typescript",
+  "version": "0.1.0",
+  "description": "TUPAGO3 gRPC TypeScript SDK client (PaymentService) — frozen contract @ backend3 22ad947. Controlled internal distribution only.",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "proto",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "proto": "node scripts/generate-proto.mjs",
+    "prebuild": "npm run proto",
+    "build": "npm run proto && tsup",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pack": "npm run build && npm pack",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "tupago",
+    "tupago3",
+    "grpc",
+    "protobuf",
+    "payments",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.15.0",
+    "grpc-tools": "^1.13.0",
+    "rimraf": "^6.0.1",
+    "ts-proto": "^2.5.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^2.1.8"
+  }
+}

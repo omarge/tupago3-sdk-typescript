@@ -1,0 +1,22 @@
+{
+  "name": "tupago3-sdk-consumer-example",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Independent consumer project that exercises the published @tupago/tupago3-sdk-typescript package.",
+  "scripts": {
+    "start": "tsx src/consumer.ts",
+    "start:cjs": "node dist-cjs/consumer.cjs",
+    "build:cjs": "esbuild src/consumer.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer.cjs"
+  },
+  "dependencies": {
+    "@tupago/tupago3-sdk-typescript": "file:../../tupago-tupago3-sdk-typescript-0.1.0.tgz"
+  },
+  "devDependencies": {
+    "@grpc/grpc-js": "^1.13.3",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.2"
+  }
+}

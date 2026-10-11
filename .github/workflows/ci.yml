@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Pack
+        run: npm pack
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tupago3-sdk-tarball
+          path: "*.tgz"
+          if-no-files-found: error
+
+  consumer:
+    needs: sdk
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: examples/consumer/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: tupago3-sdk-tarball
+          path: .
+      - name: Install consumer deps (tarball)
+        working-directory: examples/consumer
+        run: npm install
+      - name: Run consumer (ESM via tsx)
+        working-directory: examples/consumer
+        run: npm start
+      - name: Build & run consumer (CJS via esbuild)
+        working-directory: examples/consumer
+        run: npm run build:cjs && npm run start:cjs
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: npm audit (prod only)
+        run: npm audit --omit=dev || true

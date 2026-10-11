@@ -1,0 +1,35 @@
+TUPAGO3 SDK FOR TYPESCRIPT — PROPRIETARY LICENSE
+
+Copyright (c) TUPAGO. All rights reserved.
+
+1. OWNERSHIP
+This software (the "Software"), including the TUPAGO3 gRPC TypeScript client, generated
+Protobuf/grpc-js bindings and supporting documentation, is the exclusive property of TUPAGO
+("Licensor"). The Software is licensed, not sold.
+
+2. GRANT OF LICENSE
+Licensor grants the Licensee a limited, non-exclusive, non-transferable, non-sublicensable,
+revocable license to use the Software SOLELY for internal integration with authorized TUPAGO3
+backend services, and only within the scope explicitly authorized in writing by Licensor.
+
+3. RESTRICTIONS
+The Licensee shall NOT, without prior written permission from Licensor:
+  (a) redistribute, sublicense, publish, or make the Software available to any third party;
+  (b) publish the Software to any public package registry (e.g. npmjs.com) or public mirror;
+  (c) reverse engineer, decompile, or disassemble the Software, except as permitted by law;
+  (d) remove or obscure any proprietary notices or license terms;
+  (e) use the Software for any production financial transaction without written authorization.
+
+4. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+5. TERMINATION
+This license terminates automatically upon breach of any term. Upon termination, the Licensee
+must cease all use and destroy all copies of the Software.
+
+6. DISTRIBUTION
+This package is intended for CONTROLLED INTERNAL DISTRIBUTION only. Publication to public
+registries is PROHIBITED without express written authorization from Licensor.
