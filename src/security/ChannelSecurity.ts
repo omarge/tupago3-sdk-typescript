@@ -56,15 +56,19 @@ export class ChannelSecurity {
    * Convenience: choose transport by target. Loopback -> insecure (local dev); otherwise -> TLS.
    */
   static forTarget(target: string, tls?: TlsConfig): grpc.ChannelCredentials {
+    // Explicit TLS configuration is ALWAYS honored, including on loopback. A loopback
+    // address must never downgrade an explicitly-requested TLS transport to plaintext
+    // (fail-closed: verification is preserved). Verification is never disabled and no
+    // loopback exception is introduced.
+    if (tls) {
+      return ChannelSecurity.tls(tls);
+    }
     if (ChannelSecurity.isLoopback(hostOf(target))) {
       return ChannelSecurity.plaintextLoopback(target);
     }
-    if (!tls) {
-      throw new Error(
-        `TLS required for non-loopback target '${target}' (gate G8). Provide a TlsConfig.`,
-      );
-    }
-    return ChannelSecurity.tls(tls);
+    throw new Error(
+      `TLS required for non-loopback target '${target}' (gate G8). Provide a TlsConfig.`,
+    );
   }
 }
 

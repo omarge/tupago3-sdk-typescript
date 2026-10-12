@@ -4,6 +4,7 @@ import {
   ChannelSecurity,
   TlsConfig,
   TupagoPaymentClient,
+  TupagoUnauthenticatedException,
   CredentialProvider,
 } from "../src/index.js";
 import { ClientePerfil, GetClienteRequest } from "../src/generated/tupago/api/v1/payment.js";
@@ -91,4 +92,16 @@ describe("ChannelSecurity.forTarget rules", () => {
       () => new TupagoPaymentClient({ target: "api.tupago.example:443", credentials: provider() }),
     ).toThrow(/TLS required|gate G8/i);
   });
+
+  it("explicit TLS on loopback is honored (no plaintext downgrade)", () => {
+    // Regression for F03 TLS-on-loopback: when a TlsConfig is provided, the channel
+    // MUST use TLS even on a loopback target. We assert the returned credentials are
+    // the SSL/TLS variant (carry a secureContext) and NOT the insecure/plaintext
+    // variant. Verification is never disabled.
+    const tlsCreds = ChannelSecurity.forTarget("127.0.0.1:29091", TlsConfig.systemTrust());
+    const insecureCreds = ChannelSecurity.plaintextLoopback("127.0.0.1:29091");
+    expect(tlsCreds).toHaveProperty("secureContext");
+    expect(insecureCreds).not.toHaveProperty("secureContext");
+  });
+
 });
