@@ -17,10 +17,12 @@ export class BearerCallCredentials {
     return grpc.credentials.createFromMetadataGenerator((_params, callback) => {
       const token = provider.token();
       if (token == null || token.trim() === "") {
-        callback(
-          new Error("No bearer token supplied by CredentialProvider"),
-          undefined,
-        );
+        // Fail fast locally with UNAUTHENTICATED (the backend would also reject), so no
+        // unauthenticated request ever reaches a financial endpoint. Surface it as gRPC code
+        // UNAUTHENTICATED so the SDK maps it to TupagoUnauthenticatedException.
+        const err = new Error("No bearer token supplied by CredentialProvider");
+        (err as unknown as { code: number }).code = grpc.status.UNAUTHENTICATED;
+        callback(err, undefined);
         return;
       }
       const metadata = new grpc.Metadata();
