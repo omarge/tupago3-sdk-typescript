@@ -15,6 +15,10 @@ function provider(): CredentialProvider {
   return { token: () => "jwt" };
 }
 
+function providerNull(): CredentialProvider {
+  return { token: () => null };
+}
+
 let server: MockPaymentServer;
 let fixture: ReturnType<typeof generateTlsFixture>;
 
@@ -102,6 +106,17 @@ describe("ChannelSecurity.forTarget rules", () => {
     const insecureCreds = ChannelSecurity.plaintextLoopback("127.0.0.1:29091");
     expect(tlsCreds).toHaveProperty("secureContext");
     expect(insecureCreds).not.toHaveProperty("secureContext");
+  });
+
+  it("missing bearer token surfaces UNAUTHENTICATED without dispatching a request", async () => {
+    // Regression for F03-R3: a null/empty token must fail fast with gRPC code
+    // UNAUTHENTICATED (mapped to TupagoUnauthenticatedException), and must never send an
+    // unauthenticated request to a financial endpoint. No server is contacted.
+    const anon = new TupagoPaymentClient({
+      target: "127.0.0.1:1",
+      credentials: providerNull(),
+    });
+    await expect(anon.getCatalogo("301")).rejects.toBeInstanceOf(TupagoUnauthenticatedException);
   });
 
 });
