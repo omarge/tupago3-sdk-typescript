@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as http from "node:http";
 import {
   createGraphqlTransport,
+  TupagoException,
   TupagoUnauthenticatedException,
   TupagoNotFoundException,
   TupagoInvalidArgumentException,
@@ -10,6 +11,7 @@ import {
   TupagoTransientException,
   PENDING_RECONCILIATION_CODE,
   CredentialProvider,
+  RetryPolicy,
 } from "../src/index.js";
 import type { ClientePerfil, CatalogoInstitucion } from "../src/generated/tupago/api/v1/payment.js";
 
@@ -221,9 +223,73 @@ describe("GraphQL transport — error mapping", () => {
   });
 });
 
-describe("GraphQL transport — network safety", () => {
-  it("read transport failure is retried then surfaces as TransientException", async () => {
-    const t = createGraphqlTransport({ target: "http://127.0.0.1:1", credentials: creds() });
+describe("GraphQL transport — network safety (deterministic retry proofs)", () => {
+  // Deterministic, zero-delay retry policy so tests prove ACTUAL attempt counts without real sleeps.
+  class ZeroDelayRetry implements RetryPolicy {
+    constructor(private max: number) {}
+    shouldRetry(attempt: number, e: TupagoException): boolean {
+      return e.isRetryable() && attempt < this.max - 1;
+    }
+    delayMillis(): number {
+      return 0;
+    }
+  }
+
+  function startFlaky(behavior: (count: number) => "destroy" | "respond", body: unknown): { readonly base: string; attempts: () => number; ready: Promise<void>; close: () => void } {
+    let count = 0;
+    const server = http.createServer((req, res) => {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => {
+        count++;
+        if (behavior(count) === "destroy") {
+          req.socket.destroy();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+      });
+    });
+    let base = "";
+    const ready = new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => {
+      const a = server.address();
+      base = `http://127.0.0.1:${typeof a === "object" && a ? a.port : 0}`;
+      resolve();
+    }));
+    return {
+      get base() {
+        return base;
+      },
+      attempts: () => count,
+      close: () => server.close(),
+      ready,
+    } as any;
+  }
+
+  const CLIENTE_OK = {
+    data: {
+      q: {
+        cliente: { id: "1", nombre: "X", claveInstitucion: "301", key: "K" },
+        catalogoInstitucion: { id: "9", claveInstitucion: "301", nombreCorto: "MEMBER_A" },
+      },
+    },
+  };
+
+  it("READ retries transient network failures and succeeds after N attempts (attempt count == 3)", async () => {
+    const srv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), CLIENTE_OK);
+    await srv.ready;
+    const t = createGraphqlTransport({ target: srv.base, credentials: creds(), readRetryPolicy: new ZeroDelayRetry(3) });
+    const r = await t.getCliente(1n);
+    expect(srv.attempts()).toBe(3);
+    expect(r.cliente?.nombre).toBe("X");
+    expect(r.catalogoInstitucion?.nombreCorto).toBe("MEMBER_A");
+    srv.close();
+  });
+
+  it("READ retry exhaustion surfaces TransientException with policy-defined attempt count (== 3)", async () => {
+    const srv = startFlaky(() => "destroy", CLIENTE_OK);
+    await srv.ready;
+    const t = createGraphqlTransport({ target: srv.base, credentials: creds(), readRetryPolicy: new ZeroDelayRetry(3) });
     let err: any;
     try {
       await t.getCliente(1n);
@@ -232,10 +298,14 @@ describe("GraphQL transport — network safety", () => {
     }
     expect(err).toBeInstanceOf(TupagoTransientException);
     expect(err.isRetryable()).toBe(true);
-  }, 15000);
+    expect(srv.attempts()).toBe(3);
+    srv.close();
+  });
 
-  it("create network failure is NEVER retried (UnknownOutcome)", async () => {
-    const t = createGraphqlTransport({ target: "http://127.0.0.1:1", credentials: creds() });
+  it("create network failure is NEVER retried (exactly one attempt, UnknownOutcome)", async () => {
+    const srv = startFlaky(() => "destroy", CLIENTE_OK);
+    await srv.ready;
+    const t = createGraphqlTransport({ target: srv.base, credentials: creds() });
     let err: any;
     try {
       await t.createQr(QR_REQ);
@@ -244,5 +314,7 @@ describe("GraphQL transport — network safety", () => {
     }
     expect(err).toBeInstanceOf(TupagoUnknownOutcomeException);
     expect(err.isRetryable()).toBe(false);
-  }, 15000);
+    expect(srv.attempts()).toBe(1);
+    srv.close();
+  });
 });

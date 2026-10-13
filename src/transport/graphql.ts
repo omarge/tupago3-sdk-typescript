@@ -34,6 +34,7 @@ import { CreateQrParams, CreateTelefonicoParams, CallOptions } from "../client/t
 import { JsonResponseView } from "../client/JsonResponseView.js";
 import { ClientePerfil, CatalogoInstitucion } from "../generated/tupago/api/v1/payment.js";
 import { PaymentTransport, TransportDeps, jsonResponseViewFromValue } from "./types.js";
+import { requireNonDefaultCliente, requireNonDefaultCatalogo } from "./validate.js";
 import {
   NetworkError,
   bearerHeader,
@@ -84,7 +85,10 @@ export class GraphqlPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetCliente", opts, { query, variables: { id: String(id) } }, (data) => {
       requireValue(data?.cliente, "getCliente.cliente");
       requireValue(data?.catalogoInstitucion, "getCliente.catalogoInstitucion");
-      return ClientePerfil.fromJSON({ cliente: data.cliente, catalogoInstitucion: data.catalogoInstitucion });
+      const perfil = ClientePerfil.fromJSON({ cliente: data.cliente, catalogoInstitucion: data.catalogoInstitucion });
+      requireNonDefaultCliente(perfil.cliente, "getCliente");
+      requireNonDefaultCatalogo(perfil.catalogoInstitucion, "getCliente");
+      return perfil;
     });
   }
 
@@ -92,7 +96,9 @@ export class GraphqlPaymentTransport implements PaymentTransport {
     const query = `query($c:String!){ ${ALIAS}: catalogoInstitucion(claveInstitucion:$c){ id claveInstitucion nombreCorto } }`;
     return this.dispatchRead("GetCatalogo", opts, { query, variables: { c: claveInstitucion ?? "" } }, (data) => {
       requireValue(data, "getCatalogo");
-      return CatalogoInstitucion.fromJSON(data);
+      const cat = CatalogoInstitucion.fromJSON(data);
+      requireNonDefaultCatalogo(cat, "getCatalogo");
+      return cat;
     });
   }
 
@@ -194,20 +200,13 @@ export class GraphqlPaymentTransport implements PaymentTransport {
         const payload = await this.post(body, opts);
         return adapt(this.resultOrThrow(payload, false));
       } catch (e) {
-        if (e instanceof NetworkError) throw networkToException(e, false);
-        if (e instanceof TupagoException) {
-          if (this.readRetryPolicy.shouldRetry(attempt, e)) {
-            await sleep(this.readRetryPolicy.delayMillis(attempt));
-            attempt++;
-            continue;
-          }
-          throw e;
+        const te = this.normalizeReadError(e);
+        if (this.readRetryPolicy.shouldRetry(attempt, te)) {
+          await sleep(this.readRetryPolicy.delayMillis(attempt));
+          attempt++;
+          continue;
         }
-        throw new TupagoInvalidArgumentException(
-          grpc.status.INVALID_ARGUMENT,
-          `unexpected read failure: ${(e as Error)?.message ?? e}`,
-          e,
-        );
+        throw te;
       }
     }
   }
@@ -221,15 +220,31 @@ export class GraphqlPaymentTransport implements PaymentTransport {
     try {
       const payload = await this.post(body, opts);
       return adapt(this.resultOrThrow(payload, true));
-    } catch (e) {
-      if (e instanceof NetworkError) throw networkToException(e, true);
-      if (e instanceof TupagoException) throw e;
-      throw new TupagoUnknownOutcomeException(
-        grpc.status.UNKNOWN,
-        `ambiguous create outcome: ${(e as Error)?.message ?? e}`,
-        e,
-      );
+      } catch (e) {
+        if (e instanceof NetworkError) throw networkToException(e, true);
+        if (e instanceof TupagoException) throw e;
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: ${(e as Error)?.message ?? e}`,
+          e,
+        );
+      }
     }
+
+  /**
+   * Normalize any read failure into a {@link TupagoException} so the configured readRetryPolicy can
+   * make a single, uniform retry decision. A transport/network failure (NetworkError) becomes a
+   * retryable TransientException; this is what makes GraphQL reads retry transient failures through
+   * BackoffRetryPolicy (mirroring the REST transport's toReadError). Creates do NOT use this path.
+   */
+  private normalizeReadError(e: unknown): TupagoException {
+    if (e instanceof NetworkError) return networkToException(e, false);
+    if (e instanceof TupagoException) return e;
+    return new TupagoInvalidArgumentException(
+      grpc.status.INVALID_ARGUMENT,
+      `unexpected read failure: ${(e as Error)?.message ?? e}`,
+      e,
+    );
   }
 }
 

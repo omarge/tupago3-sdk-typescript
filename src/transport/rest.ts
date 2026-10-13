@@ -31,6 +31,7 @@ import {
   parseJsonOrFail,
   requireValue,
 } from "./httpCommon.js";
+import { requireNonDefaultCliente, requireNonDefaultCatalogo } from "./validate.js";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -70,10 +71,13 @@ export class RestPaymentTransport implements PaymentTransport {
       const raw = await this.getJson(`/api/clientesadd/${encodeURIComponent(idStr)}`);
       requireValue(raw.cliente, "getCliente.cliente");
       requireValue(raw.catalogoInstitucion, "getCliente.catalogoInstitucion");
-      return ClientePerfil.fromJSON({
+      const perfil = ClientePerfil.fromJSON({
         cliente: raw.cliente,
         catalogoInstitucion: raw.catalogoInstitucion,
       });
+      requireNonDefaultCliente(perfil.cliente, "getCliente");
+      requireNonDefaultCatalogo(perfil.catalogoInstitucion, "getCliente");
+      return perfil;
     });
   }
 
@@ -82,7 +86,9 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetCatalogo", opts, async () => {
       const raw = await this.getJson(`/api/catalogo-institucions/clave/${encodeURIComponent(clave)}`);
       requireValue(raw, "getCatalogo");
-      return CatalogoInstitucion.fromJSON(raw);
+      const cat = CatalogoInstitucion.fromJSON(raw);
+      requireNonDefaultCatalogo(cat, "getCatalogo");
+      return cat;
     });
   }
 

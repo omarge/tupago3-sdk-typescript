@@ -1,16 +1,20 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as http from "node:http";
+import * as grpc from "@grpc/grpc-js";
 import {
   TupagoPaymentClient,
   GrpcPaymentTransport,
   createRestTransport,
   createGraphqlTransport,
+  TupagoException,
   TupagoUnauthenticatedException,
   TupagoUnknownOutcomeException,
+  TupagoTransientException,
   ClientePerfil,
   CatalogoInstitucion,
   JsonResponseView,
   CredentialProvider,
+  RetryPolicy,
 } from "../src/index.js";
 import { MockPaymentServer } from "./support/mockServer.js";
 
@@ -234,5 +238,109 @@ describe("Cross-transport conformance (gRPC == REST == GraphQL)", () => {
     t.grpc.close();
     t.rest.close();
     t.graphql.close();
+  });
+});
+
+describe("Cross-transport READ retry attempt conformance (C5 GetCliente)", () => {
+  const creds: CredentialProvider = { token: () => "valid.jwt" };
+  // Deterministic zero-delay retry policy so we can assert exact attempt counts.
+  class ZeroDelayRetry implements RetryPolicy {
+    constructor(private max: number) {}
+    shouldRetry(attempt: number, e: TupagoException): boolean {
+      return e.isRetryable() && attempt < this.max - 1;
+    }
+    delayMillis(): number {
+      return 0;
+    }
+  }
+
+  const CLIENTE_OK = {
+    cliente: { id: 123, nombre: "Juan", claveInstitucion: "BANX", key: "k1" },
+    catalogoInstitucion: { id: 9, claveInstitucion: "BANX", nombreCorto: "Banco X" },
+  };
+
+  function startFlaky(behavior: (n: number) => "destroy" | "respond", body: unknown): { readonly base: string; attempts: () => number; ready: Promise<void>; close: () => void } {
+    let count = 0;
+    const server = http.createServer((req, res) => {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => {
+        count++;
+        if (behavior(count) === "destroy") {
+          req.socket.destroy();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+      });
+    });
+    let base = "";
+    const ready = new Promise<void>((r) => server.listen(0, "127.0.0.1", () => {
+      const a = server.address();
+      base = `http://127.0.0.1:${typeof a === "object" && a ? a.port : 0}`;
+      r();
+    }));
+    return { get base() { return base; }, attempts: () => count, ready, close: () => server.close() };
+  }
+
+  it("REST and GraphQL READ retry transient network failures and succeed after exactly 3 attempts", async () => {
+    const restSrv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), CLIENTE_OK);
+    const gqlSrv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), { data: { q: CLIENTE_OK } });
+    await Promise.all([restSrv.ready, gqlSrv.ready]);
+
+    const rest = createRestTransport({ target: restSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+    const gql = createGraphqlTransport({ target: gqlSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+
+    const [r, q] = await Promise.all([rest.getCliente(CLIENTE_ID), gql.getCliente(CLIENTE_ID)]);
+    expect(restSrv.attempts()).toBe(3);
+    expect(gqlSrv.attempts()).toBe(3);
+    expect(r.cliente?.nombre).toBe("Juan");
+    expect(q.cliente?.nombre).toBe("Juan");
+    restSrv.close();
+    gqlSrv.close();
+  });
+
+  it("gRPC READ retries UNAVAILABLE and succeeds after exactly 3 attempts", async () => {
+    let calls = 0;
+    const grpcServer = new MockPaymentServer({
+      behaviors: {
+        GetCliente: () => {
+          calls++;
+          if (calls < 3) return { kind: "error", code: grpc.status.UNAVAILABLE, details: "transient" };
+          return {
+            kind: "response",
+            message: ClientePerfil.create({
+              cliente: { id: CLIENTE_ID, nombre: "Juan", claveInstitucion: "BANX", key: "k1" },
+              catalogoInstitucion: { id: 9n, claveInstitucion: "BANX", nombreCorto: "Banco X" },
+            }),
+          };
+        },
+      },
+    });
+    await grpcServer.start();
+    const tr = new GrpcPaymentTransport({ target: grpcServer.target, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+    const r = await tr.getCliente(CLIENTE_ID);
+    expect(calls).toBe(3);
+    expect(r.cliente?.nombre).toBe("Juan");
+    tr.close();
+    await grpcServer.stop();
+  });
+
+  it("REST, GraphQL, gRPC READ retry exhaustion surfaces TransientException with policy-defined attempt count (== 3)", async () => {
+    const restSrv = startFlaky(() => "destroy", CLIENTE_OK);
+    const gqlSrv = startFlaky(() => "destroy", { data: { q: CLIENTE_OK } });
+    await Promise.all([restSrv.ready, gqlSrv.ready]);
+
+    const rest = createRestTransport({ target: restSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+    const gql = createGraphqlTransport({ target: gqlSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+    let restErr: any, gqlErr: any;
+    try { await rest.getCliente(CLIENTE_ID); } catch (e) { restErr = e; }
+    try { await gql.getCliente(CLIENTE_ID); } catch (e) { gqlErr = e; }
+    expect(restErr).toBeInstanceOf(TupagoTransientException);
+    expect(gqlErr).toBeInstanceOf(TupagoTransientException);
+    expect(restSrv.attempts()).toBe(3);
+    expect(gqlSrv.attempts()).toBe(3);
+    restSrv.close();
+    gqlSrv.close();
   });
 });
