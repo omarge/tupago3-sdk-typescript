@@ -8,6 +8,20 @@ export { TupagoPaymentClient } from "./client/TupagoPaymentClient.js";
 export { JsonResponseView } from "./client/JsonResponseView.js";
 export type { CreateQrParams, CreateTelefonicoParams, CallOptions } from "./client/types.js";
 
+// Transport-neutral contract + REST transport (Phase E). The gRPC transport is the default
+// inside TupagoPaymentClient; REST/GraphQL transports plug in via the `transport` option.
+export {
+  RestPaymentTransport,
+  createRestTransport,
+} from "./transport/rest.js";
+export {
+  GrpcPaymentTransport,
+} from "./transport/grpc.js";
+export type {
+  PaymentTransport,
+  TransportDeps,
+} from "./transport/types.js";
+
 export type { CredentialProvider } from "./auth/CredentialProvider.js";
 export { BearerCallCredentials } from "./auth/BearerCallCredentials.js";
 

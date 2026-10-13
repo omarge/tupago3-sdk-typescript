@@ -62,6 +62,12 @@ jobs:
       - name: Build & run consumer (CJS via esbuild)
         working-directory: examples/consumer
         run: npm run build:cjs && npm run start:cjs
+      - name: Run consumer REST (ESM via tsx)
+        working-directory: examples/consumer
+        run: npm run start:rest
+      - name: Build & run consumer REST (CJS via esbuild)
+        working-directory: examples/consumer
+        run: npm run build:cjs:rest && npm run start:rest:cjs
 
   audit:
     runs-on: ubuntu-latest

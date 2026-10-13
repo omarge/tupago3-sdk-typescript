@@ -1744,8 +1744,8 @@ var require_picker = __commonJS({
       PickResultType2[PickResultType2["DROP"] = 3] = "DROP";
     })(PickResultType || (exports2.PickResultType = PickResultType = {}));
     var UnavailablePicker = class {
-      constructor(status6) {
-        this.status = Object.assign({ code: constants_1.Status.UNAVAILABLE, details: "No connection established", metadata: new metadata_1.Metadata() }, status6);
+      constructor(status9) {
+        this.status = Object.assign({ code: constants_1.Status.UNAVAILABLE, details: "No connection established", metadata: new metadata_1.Metadata() }, status9);
       }
       pick(pickArgs) {
         return {
@@ -3398,13 +3398,13 @@ var require_call = __commonJS({
     var events_1 = require("events");
     var stream_1 = require("stream");
     var constants_1 = require_constants();
-    function callErrorFromStatus(status6, callerStack) {
-      const message = `${status6.code} ${constants_1.Status[status6.code]}: ${status6.details}`;
+    function callErrorFromStatus(status9, callerStack) {
+      const message = `${status9.code} ${constants_1.Status[status9.code]}: ${status9.details}`;
       const error = new Error(message);
       const stack = `${error.stack}
 for call at
 ${callerStack}`;
-      return Object.assign(new Error(message), status6, { stack });
+      return Object.assign(new Error(message), status9, { stack });
     }
     var ClientUnaryCallImpl = class extends events_1.EventEmitter {
       constructor() {
@@ -3595,8 +3595,8 @@ var require_call_interface = __commonJS({
           }
         });
       }
-      onReceiveStatus(status6) {
-        this.listener.onReceiveStatus(status6, (processedStatus) => {
+      onReceiveStatus(status9) {
+        this.listener.onReceiveStatus(status9, (processedStatus) => {
           if (this.processingMetadata || this.processingMessage) {
             this.pendingStatus = processedStatus;
           } else {
@@ -3695,8 +3695,8 @@ var require_client_interceptors = __commonJS({
       onReceiveMessage: (message, next) => {
         next(message);
       },
-      onReceiveStatus: (status6, next) => {
-        next(status6);
+      onReceiveStatus: (status9, next) => {
+        next(status9);
       }
     };
     var defaultRequester = {
@@ -3732,9 +3732,9 @@ var require_client_interceptors = __commonJS({
           this.requester = defaultRequester;
         }
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         this.requester.cancel(() => {
-          this.nextCall.cancelWithStatus(status6, details);
+          this.nextCall.cancelWithStatus(status9, details);
         });
       }
       getPeer() {
@@ -3759,7 +3759,7 @@ var require_client_interceptors = __commonJS({
           },
           onReceiveMessage: (_d = (_c = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveMessage) === null || _c === void 0 ? void 0 : _c.bind(interceptingListener)) !== null && _d !== void 0 ? _d : (message) => {
           },
-          onReceiveStatus: (_f = (_e = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveStatus) === null || _e === void 0 ? void 0 : _e.bind(interceptingListener)) !== null && _f !== void 0 ? _f : (status6) => {
+          onReceiveStatus: (_f = (_e = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveStatus) === null || _e === void 0 ? void 0 : _e.bind(interceptingListener)) !== null && _f !== void 0 ? _f : (status9) => {
           }
         };
         this.processingMetadata = true;
@@ -3835,8 +3835,8 @@ var require_client_interceptors = __commonJS({
         this.call = call;
         this.methodDefinition = methodDefinition;
       }
-      cancelWithStatus(status6, details) {
-        this.call.cancelWithStatus(status6, details);
+      cancelWithStatus(status9, details) {
+        this.call.cancelWithStatus(status9, details);
       }
       getPeer() {
         return this.call.getPeer();
@@ -3879,12 +3879,12 @@ var require_client_interceptors = __commonJS({
             }
             (_a = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveMessage) === null || _a === void 0 ? void 0 : _a.call(interceptingListener, deserialized);
           },
-          onReceiveStatus: (status6) => {
+          onReceiveStatus: (status9) => {
             var _a, _b;
             if (readError) {
               (_a = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveStatus) === null || _a === void 0 ? void 0 : _a.call(interceptingListener, readError);
             } else {
-              (_b = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveStatus) === null || _b === void 0 ? void 0 : _b.call(interceptingListener, status6);
+              (_b = interceptingListener === null || interceptingListener === void 0 ? void 0 : interceptingListener.onReceiveStatus) === null || _b === void 0 ? void 0 : _b.call(interceptingListener, status9);
             }
           }
         });
@@ -3916,12 +3916,12 @@ var require_client_interceptors = __commonJS({
             receivedMessage = true;
             (_a2 = listener === null || listener === void 0 ? void 0 : listener.onReceiveMessage) === null || _a2 === void 0 ? void 0 : _a2.call(listener, message);
           },
-          onReceiveStatus: (status6) => {
+          onReceiveStatus: (status9) => {
             var _a2, _b2;
             if (!receivedMessage) {
               (_a2 = listener === null || listener === void 0 ? void 0 : listener.onReceiveMessage) === null || _a2 === void 0 ? void 0 : _a2.call(listener, null);
             }
-            (_b2 = listener === null || listener === void 0 ? void 0 : listener.onReceiveStatus) === null || _b2 === void 0 ? void 0 : _b2.call(listener, status6);
+            (_b2 = listener === null || listener === void 0 ? void 0 : listener.onReceiveStatus) === null || _b2 === void 0 ? void 0 : _b2.call(listener, status9);
           }
         };
         super.start(metadata, wrapperListener);
@@ -4100,28 +4100,28 @@ var require_client = __commonJS({
             }
             responseMessage = message;
           },
-          onReceiveStatus(status6) {
+          onReceiveStatus(status9) {
             if (receivedStatus) {
               return;
             }
             receivedStatus = true;
-            if (status6.code === constants_1.Status.OK) {
+            if (status9.code === constants_1.Status.OK) {
               if (responseMessage === null) {
                 const callerStack = getErrorStackString(callerStackError);
                 callProperties.callback((0, call_1.callErrorFromStatus)({
                   code: constants_1.Status.UNIMPLEMENTED,
                   details: "No message received",
-                  metadata: status6.metadata
+                  metadata: status9.metadata
                 }, callerStack));
               } else {
                 callProperties.callback(null, responseMessage);
               }
             } else {
               const callerStack = getErrorStackString(callerStackError);
-              callProperties.callback((0, call_1.callErrorFromStatus)(status6, callerStack));
+              callProperties.callback((0, call_1.callErrorFromStatus)(status9, callerStack));
             }
             callerStackError = null;
-            emitter.emit("status", status6);
+            emitter.emit("status", status9);
           }
         });
         call.sendMessage(argument);
@@ -4173,28 +4173,28 @@ var require_client = __commonJS({
             responseMessage = message;
             call.startRead();
           },
-          onReceiveStatus(status6) {
+          onReceiveStatus(status9) {
             if (receivedStatus) {
               return;
             }
             receivedStatus = true;
-            if (status6.code === constants_1.Status.OK) {
+            if (status9.code === constants_1.Status.OK) {
               if (responseMessage === null) {
                 const callerStack = getErrorStackString(callerStackError);
                 callProperties.callback((0, call_1.callErrorFromStatus)({
                   code: constants_1.Status.UNIMPLEMENTED,
                   details: "No message received",
-                  metadata: status6.metadata
+                  metadata: status9.metadata
                 }, callerStack));
               } else {
                 callProperties.callback(null, responseMessage);
               }
             } else {
               const callerStack = getErrorStackString(callerStackError);
-              callProperties.callback((0, call_1.callErrorFromStatus)(status6, callerStack));
+              callProperties.callback((0, call_1.callErrorFromStatus)(status9, callerStack));
             }
             callerStackError = null;
-            emitter.emit("status", status6);
+            emitter.emit("status", status9);
           }
         });
         return emitter;
@@ -4259,18 +4259,18 @@ var require_client = __commonJS({
           onReceiveMessage(message) {
             stream.push(message);
           },
-          onReceiveStatus(status6) {
+          onReceiveStatus(status9) {
             if (receivedStatus) {
               return;
             }
             receivedStatus = true;
             stream.push(null);
-            if (status6.code !== constants_1.Status.OK) {
+            if (status9.code !== constants_1.Status.OK) {
               const callerStack = getErrorStackString(callerStackError);
-              stream.emit("error", (0, call_1.callErrorFromStatus)(status6, callerStack));
+              stream.emit("error", (0, call_1.callErrorFromStatus)(status9, callerStack));
             }
             callerStackError = null;
-            stream.emit("status", status6);
+            stream.emit("status", status9);
           }
         });
         call.sendMessage(argument);
@@ -4315,18 +4315,18 @@ var require_client = __commonJS({
           onReceiveMessage(message) {
             stream.push(message);
           },
-          onReceiveStatus(status6) {
+          onReceiveStatus(status9) {
             if (receivedStatus) {
               return;
             }
             receivedStatus = true;
             stream.push(null);
-            if (status6.code !== constants_1.Status.OK) {
+            if (status9.code !== constants_1.Status.OK) {
               const callerStack = getErrorStackString(callerStackError);
-              stream.emit("error", (0, call_1.callErrorFromStatus)(status6, callerStack));
+              stream.emit("error", (0, call_1.callErrorFromStatus)(status9, callerStack));
             }
             callerStackError = null;
-            stream.emit("status", status6);
+            stream.emit("status", status9);
           }
         });
         return stream;
@@ -7297,24 +7297,24 @@ var require_fs = __commonJS({
 var require_fetch = __commonJS({
   "node_modules/@protobufjs/fetch/index.js"(exports2, module2) {
     "use strict";
-    module2.exports = fetch;
+    module2.exports = fetch2;
     var asPromise = require_aspromise();
     var fs = require_fs();
-    function fetch(filename, options, callback) {
+    function fetch2(filename, options, callback) {
       if (typeof options === "function") {
         callback = options;
         options = {};
       } else if (!options)
         options = {};
       if (!callback)
-        return asPromise(fetch, this, filename, options);
+        return asPromise(fetch2, this, filename, options);
       if (!options.xhr && fs && fs.readFile)
         return fs.readFile(filename, function fetchReadFileCallback(err, contents) {
-          return err && typeof XMLHttpRequest !== "undefined" ? fetch.xhr(filename, options, callback) : err ? callback(err) : callback(null, options.binary ? contents : contents.toString("utf8"));
+          return err && typeof XMLHttpRequest !== "undefined" ? fetch2.xhr(filename, options, callback) : err ? callback(err) : callback(null, options.binary ? contents : contents.toString("utf8"));
         });
-      return fetch.xhr(filename, options, callback);
+      return fetch2.xhr(filename, options, callback);
     }
-    fetch.xhr = function fetch_xhr(filename, options, callback) {
+    fetch2.xhr = function fetch_xhr(filename, options, callback) {
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function fetchOnReadyStateChange() {
         if (xhr.readyState !== 4)
@@ -8848,12 +8848,12 @@ var require_root = __commonJS({
             if (parsed.imports) {
               for (; i2 < parsed.imports.length; ++i2)
                 if (resolved2 = getBundledFileName(parsed.imports[i2]) || self2.resolvePath(filename2, parsed.imports[i2]))
-                  fetch(resolved2, false, depth + 1);
+                  fetch2(resolved2, false, depth + 1);
             }
             if (parsed.weakImports) {
               for (i2 = 0; i2 < parsed.weakImports.length; ++i2)
                 if (resolved2 = getBundledFileName(parsed.weakImports[i2]) || self2.resolvePath(filename2, parsed.weakImports[i2]))
-                  fetch(resolved2, true, depth + 1);
+                  fetch2(resolved2, true, depth + 1);
             }
           }
         } catch (err) {
@@ -8863,7 +8863,7 @@ var require_root = __commonJS({
           finish(null, self2);
         }
       }
-      function fetch(filename2, weak, depth) {
+      function fetch2(filename2, weak, depth) {
         if (depth === void 0)
           depth = 0;
         filename2 = getBundledFileName(filename2) || filename2;
@@ -8917,7 +8917,7 @@ var require_root = __commonJS({
       }
       for (var i = 0, resolved; i < filename.length; ++i)
         if (resolved = self2.resolvePath("", filename[i]))
-          fetch(resolved);
+          fetch2(resolved);
       if (sync) {
         self2.resolveAll();
         return self2;
@@ -14609,8 +14609,8 @@ var require_filter = __commonJS({
       async receiveMessage(message) {
         return message;
       }
-      receiveTrailers(status6) {
-        return status6;
+      receiveTrailers(status9) {
+        return status9;
       }
     };
     exports2.BaseFilter = BaseFilter;
@@ -15027,8 +15027,8 @@ var require_filter_stack = __commonJS({
         }
         return result;
       }
-      receiveTrailers(status6) {
-        let result = status6;
+      receiveTrailers(status9) {
+        let result = status9;
         for (let i = this.filters.length - 1; i >= 0; i--) {
           result = this.filters[i].receiveTrailers(result);
         }
@@ -15103,12 +15103,12 @@ var require_single_subchannel_channel = __commonJS({
         }
         this.filterStack = filterStackFactory.createFilter();
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         if (this.childCall) {
-          this.childCall.cancelWithStatus(status6, details);
+          this.childCall.cancelWithStatus(status9, details);
         } else {
           this.pendingStatus = {
-            code: status6,
+            code: status9,
             details,
             metadata: new metadata_1.Metadata()
           };
@@ -15159,8 +15159,8 @@ var require_single_subchannel_channel = __commonJS({
               listener.onReceiveStatus(this.pendingStatus);
             }
           },
-          onReceiveStatus: async (status6) => {
-            const filteredStatus = await this.filterStack.receiveTrailers(status6);
+          onReceiveStatus: async (status9) => {
+            const filteredStatus = await this.filterStack.receiveTrailers(status9);
             if (this.readFilterPending) {
               this.pendingStatus = filteredStatus;
             } else {
@@ -15507,8 +15507,8 @@ var require_subchannel = __commonJS({
           this.callTracker.addCallStarted();
           this.streamTracker.addCallStarted();
           statsTracker = {
-            onCallEnd: (status6) => {
-              if (status6.code === constants_1.Status.OK) {
+            onCallEnd: (status9) => {
+              if (status9.code === constants_1.Status.OK) {
                 this.callTracker.addCallSucceeded();
               } else {
                 this.callTracker.addCallFailed();
@@ -16479,9 +16479,9 @@ var require_subchannel_call = __commonJS({
        * Subsequent calls are no-ops.
        * @param status The status of the call.
        */
-      endCall(status6) {
+      endCall(status9) {
         if (this.finalStatus === null || this.finalStatus.code === constants_1.Status.OK) {
-          this.finalStatus = status6;
+          this.finalStatus = status9;
           this.maybeOutputStatus();
         }
         this.destroyHttp2Stream();
@@ -16536,7 +16536,7 @@ var require_subchannel_call = __commonJS({
           metadata = new metadata_1.Metadata();
         }
         const statusValues = metadata.get("grpc-status");
-        let status6;
+        let status9;
         if (statusValues.length > 0 && typeof statusValues[0] === "string") {
           const receivedStatus = Number(statusValues[0]);
           if (this.traceEnabled) {
@@ -16557,22 +16557,22 @@ var require_subchannel_call = __commonJS({
               this.trace('received status details string "' + details + '" from server');
             }
           }
-          status6 = {
+          status9 = {
             code: receivedStatus,
             details,
             metadata
           };
         } else if (this.httpStatusCode) {
-          status6 = mapHttpStatusCode(this.httpStatusCode);
-          status6.metadata = metadata;
+          status9 = mapHttpStatusCode(this.httpStatusCode);
+          status9.metadata = metadata;
         } else {
-          status6 = {
+          status9 = {
             code: constants_1.Status.UNKNOWN,
             details: "No status information received",
             metadata
           };
         }
-        this.endCall(status6);
+        this.endCall(status9);
       }
       destroyHttp2Stream() {
         var _a;
@@ -16596,11 +16596,11 @@ var require_subchannel_call = __commonJS({
           this.http2Stream.close(code);
         }
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         if (this.traceEnabled) {
-          this.trace("cancelWithStatus code: " + status6 + ' details: "' + details + '"');
+          this.trace("cancelWithStatus code: " + status9 + ' details: "' + details + '"');
         }
-        this.endCall({ code: status6, details, metadata: new metadata_1.Metadata() });
+        this.endCall({ code: status9, details, metadata: new metadata_1.Metadata() });
       }
       getStatus() {
         return this.finalStatus;
@@ -17027,9 +17027,9 @@ var require_transport = __commonJS({
               this.lastMessageReceivedTimestamp = Date.now();
               (_a = subchannelCallStatsTracker.addMessageReceived) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker);
             },
-            onCallEnd: (status6) => {
+            onCallEnd: (status9) => {
               var _a;
-              (_a = subchannelCallStatsTracker.onCallEnd) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker, status6);
+              (_a = subchannelCallStatsTracker.onCallEnd) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker, status9);
               this.removeActiveCall(call);
             },
             onStreamEnd: (success) => {
@@ -17052,9 +17052,9 @@ var require_transport = __commonJS({
               var _a;
               (_a = subchannelCallStatsTracker.addMessageReceived) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker);
             },
-            onCallEnd: (status6) => {
+            onCallEnd: (status9) => {
               var _a;
-              (_a = subchannelCallStatsTracker.onCallEnd) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker, status6);
+              (_a = subchannelCallStatsTracker.onCallEnd) === null || _a === void 0 ? void 0 : _a.call(subchannelCallStatsTracker, status9);
               this.removeActiveCall(call);
             },
             onStreamEnd: (success) => {
@@ -17417,14 +17417,14 @@ var require_load_balancing_call = __commonJS({
       getSubchannelString(subchannel) {
         return subchannel ? "(" + subchannel.getChannelzRef().id + ") " + subchannel.getAddress() : "" + subchannel;
       }
-      outputStatus(status6, progress) {
+      outputStatus(status9, progress) {
         var _a, _b;
         if (!this.ended) {
           this.ended = true;
           if (this.traceEnabled) {
-            this.trace("ended with status: code=" + status6.code + ' details="' + status6.details + '" start time=' + new Date(this.startTime).toISOString());
+            this.trace("ended with status: code=" + status9.code + ' details="' + status9.details + '" start time=' + new Date(this.startTime).toISOString());
           }
-          const finalStatus = Object.assign(Object.assign({}, status6), { progress });
+          const finalStatus = Object.assign(Object.assign({}, status9), { progress });
           (_a = this.listener) === null || _a === void 0 ? void 0 : _a.onReceiveStatus(finalStatus);
           (_b = this.onCallEnded) === null || _b === void 0 ? void 0 : _b.call(this, finalStatus.code, finalStatus.details, finalStatus.metadata);
           this.channel.removeCallFromPickQueue(this);
@@ -17488,12 +17488,12 @@ var require_load_balancing_call = __commonJS({
                     this.trace("Received message");
                     this.listener.onReceiveMessage(message);
                   },
-                  onReceiveStatus: (status6) => {
+                  onReceiveStatus: (status9) => {
                     this.trace("Received status");
-                    if (status6.rstCode === http2.constants.NGHTTP2_REFUSED_STREAM) {
-                      this.outputStatus(status6, "REFUSED");
+                    if (status9.rstCode === http2.constants.NGHTTP2_REFUSED_STREAM) {
+                      this.outputStatus(status9, "REFUSED");
                     } else {
-                      this.outputStatus(status6, "PROCESSED");
+                      this.outputStatus(status9, "PROCESSED");
                     }
                   }
                 }, this.callNumber);
@@ -17552,13 +17552,13 @@ var require_load_balancing_call = __commonJS({
             this.channel.queueCallForPick(this);
         }
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         var _a;
         if (this.traceEnabled) {
-          this.trace("cancelWithStatus code: " + status6 + ' details: "' + details + '"');
+          this.trace("cancelWithStatus code: " + status9 + ' details: "' + details + '"');
         }
-        (_a = this.child) === null || _a === void 0 ? void 0 : _a.cancelWithStatus(status6, details);
-        this.outputStatus({ code: status6, details, metadata: new metadata_1.Metadata() }, "PROCESSED");
+        (_a = this.child) === null || _a === void 0 ? void 0 : _a.cancelWithStatus(status9, details);
+        this.outputStatus({ code: status9, details, metadata: new metadata_1.Metadata() }, "PROCESSED");
       }
       getPeer() {
         var _a, _b;
@@ -17725,7 +17725,7 @@ var require_resolving_call = __commonJS({
           }
         }
       }
-      outputStatus(status6) {
+      outputStatus(status9) {
         if (!this.ended) {
           this.ended = true;
           if (!this.filterStack) {
@@ -17735,7 +17735,7 @@ var require_resolving_call = __commonJS({
             clearTimeout(this.deadlineTimer);
             this.deadlineTimer = null;
           }
-          const filteredStatus = this.filterStack.receiveTrailers(status6);
+          const filteredStatus = this.filterStack.receiveTrailers(status9);
           if (this.traceEnabled) {
             this.trace("ended with status: code=" + filteredStatus.code + ' details="' + filteredStatus.details + '"');
           }
@@ -17758,9 +17758,9 @@ var require_resolving_call = __commonJS({
           if (this.pendingHalfClose) {
             child.halfClose();
           }
-        }, (status6) => {
+        }, (status9) => {
           var _a, _b;
-          this.cancelWithStatus((_a = status6.code) !== null && _a !== void 0 ? _a : constants_1.Status.INTERNAL, (_b = status6.details) !== null && _b !== void 0 ? _b : "Failed to write message");
+          this.cancelWithStatus((_a = status9.code) !== null && _a !== void 0 ? _a : constants_1.Status.INTERNAL, (_b = status9.details) !== null && _b !== void 0 ? _b : "Failed to write message");
         });
       }
       getConfig() {
@@ -17822,16 +17822,16 @@ var require_resolving_call = __commonJS({
                 if (this.pendingChildStatus) {
                   this.outputStatus(this.pendingChildStatus);
                 }
-              }, (status6) => {
-                this.cancelWithStatus(status6.code, status6.details);
+              }, (status9) => {
+                this.cancelWithStatus(status9.code, status9.details);
               });
             },
-            onReceiveStatus: (status6) => {
+            onReceiveStatus: (status9) => {
               this.trace("Received status");
               if (this.readFilterPending) {
-                this.pendingChildStatus = status6;
+                this.pendingChildStatus = status9;
               } else {
-                this.outputStatus(status6);
+                this.outputStatus(status9);
               }
             }
           });
@@ -17843,26 +17843,26 @@ var require_resolving_call = __commonJS({
           } else if (this.pendingHalfClose) {
             this.child.halfClose();
           }
-        }, (status6) => {
-          this.outputStatus(status6);
+        }, (status9) => {
+          this.outputStatus(status9);
         });
       }
-      reportResolverError(status6) {
+      reportResolverError(status9) {
         var _a;
         if ((_a = this.metadata) === null || _a === void 0 ? void 0 : _a.getOptions().waitForReady) {
           this.channel.queueCallForConfig(this);
         } else {
-          this.outputStatus(status6);
+          this.outputStatus(status9);
         }
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         var _a;
         if (this.traceEnabled) {
-          this.trace("cancelWithStatus code: " + status6 + ' details: "' + details + '"');
+          this.trace("cancelWithStatus code: " + status9 + ' details: "' + details + '"');
         }
-        (_a = this.child) === null || _a === void 0 ? void 0 : _a.cancelWithStatus(status6, details);
+        (_a = this.child) === null || _a === void 0 ? void 0 : _a.cancelWithStatus(status9, details);
         this.outputStatus({
-          code: status6,
+          code: status9,
           details,
           metadata: new metadata_1.Metadata()
         });
@@ -18083,13 +18083,13 @@ var require_retrying_call = __commonJS({
           });
         });
       }
-      cancelWithStatus(status6, details) {
+      cancelWithStatus(status9, details) {
         if (this.traceEnabled) {
-          this.trace("cancelWithStatus code: " + status6 + ' details: "' + details + '"');
+          this.trace("cancelWithStatus code: " + status9 + ' details: "' + details + '"');
         }
-        this.reportStatus({ code: status6, details, metadata: new metadata_1.Metadata() });
+        this.reportStatus({ code: status9, details, metadata: new metadata_1.Metadata() });
         for (const { call } of this.underlyingCalls) {
-          call.cancelWithStatus(status6, details);
+          call.cancelWithStatus(status9, details);
         }
       }
       getPeer() {
@@ -18235,17 +18235,17 @@ var require_retrying_call = __commonJS({
         }
         return count;
       }
-      handleProcessedStatus(status6, callIndex, pushback) {
+      handleProcessedStatus(status9, callIndex, pushback) {
         var _a, _b, _c;
         switch (this.state) {
           case "COMMITTED":
           case "NO_RETRY":
           case "TRANSPARENT_ONLY":
             this.commitCall(callIndex);
-            this.reportStatus(status6);
+            this.reportStatus(status9);
             break;
           case "HEDGING":
-            if (this.isStatusCodeInList((_a = this.callConfig.methodConfig.hedgingPolicy.nonFatalStatusCodes) !== null && _a !== void 0 ? _a : [], status6.code)) {
+            if (this.isStatusCodeInList((_a = this.callConfig.methodConfig.hedgingPolicy.nonFatalStatusCodes) !== null && _a !== void 0 ? _a : [], status9.code)) {
               (_b = this.retryThrottler) === null || _b === void 0 ? void 0 : _b.addCallFailed();
               let delayMs;
               if (pushback === null) {
@@ -18253,7 +18253,7 @@ var require_retrying_call = __commonJS({
               } else if (pushback < 0) {
                 this.state = "TRANSPARENT_ONLY";
                 this.commitCall(callIndex);
-                this.reportStatus(status6);
+                this.reportStatus(status9);
                 return;
               } else {
                 delayMs = pushback;
@@ -18262,26 +18262,26 @@ var require_retrying_call = __commonJS({
                 this.maybeStartHedgingAttempt();
                 if (this.countActiveCalls() === 0) {
                   this.commitCall(callIndex);
-                  this.reportStatus(status6);
+                  this.reportStatus(status9);
                 }
               }, delayMs);
             } else {
               this.commitCall(callIndex);
-              this.reportStatus(status6);
+              this.reportStatus(status9);
             }
             break;
           case "RETRY":
-            if (this.isStatusCodeInList(this.callConfig.methodConfig.retryPolicy.retryableStatusCodes, status6.code)) {
+            if (this.isStatusCodeInList(this.callConfig.methodConfig.retryPolicy.retryableStatusCodes, status9.code)) {
               (_c = this.retryThrottler) === null || _c === void 0 ? void 0 : _c.addCallFailed();
               this.maybeRetryCall(pushback, (retried) => {
                 if (!retried) {
                   this.commitCall(callIndex);
-                  this.reportStatus(status6);
+                  this.reportStatus(status9);
                 }
               });
             } else {
               this.commitCall(callIndex);
-              this.reportStatus(status6);
+              this.reportStatus(status9);
             }
             break;
         }
@@ -18297,38 +18297,38 @@ var require_retrying_call = __commonJS({
           return -1;
         }
       }
-      handleChildStatus(status6, callIndex) {
+      handleChildStatus(status9, callIndex) {
         var _a;
         if (this.underlyingCalls[callIndex].state === "COMPLETED") {
           return;
         }
         if (this.traceEnabled) {
-          this.trace("state=" + this.state + " handling status with progress " + status6.progress + " from child [" + this.underlyingCalls[callIndex].call.getCallNumber() + "] in state " + this.underlyingCalls[callIndex].state);
+          this.trace("state=" + this.state + " handling status with progress " + status9.progress + " from child [" + this.underlyingCalls[callIndex].call.getCallNumber() + "] in state " + this.underlyingCalls[callIndex].state);
         }
         this.underlyingCalls[callIndex].state = "COMPLETED";
-        if (status6.code === constants_1.Status.OK) {
+        if (status9.code === constants_1.Status.OK) {
           (_a = this.retryThrottler) === null || _a === void 0 ? void 0 : _a.addCallSucceeded();
           this.commitCall(callIndex);
-          this.reportStatus(status6);
+          this.reportStatus(status9);
           return;
         }
         if (this.state === "NO_RETRY") {
           this.commitCall(callIndex);
-          this.reportStatus(status6);
+          this.reportStatus(status9);
           return;
         }
         if (this.state === "COMMITTED") {
-          this.reportStatus(status6);
+          this.reportStatus(status9);
           return;
         }
-        const pushback = this.getPushback(status6.metadata);
-        switch (status6.progress) {
+        const pushback = this.getPushback(status9.metadata);
+        switch (status9.progress) {
           case "NOT_STARTED":
             this.startNewAttempt();
             break;
           case "REFUSED":
             if (this.transparentRetryUsed) {
-              this.handleProcessedStatus(status6, callIndex, pushback);
+              this.handleProcessedStatus(status9, callIndex, pushback);
             } else {
               this.transparentRetryUsed = true;
               this.startNewAttempt();
@@ -18336,10 +18336,10 @@ var require_retrying_call = __commonJS({
             break;
           case "DROP":
             this.commitCall(callIndex);
-            this.reportStatus(status6);
+            this.reportStatus(status9);
             break;
           case "PROCESSED":
-            this.handleProcessedStatus(status6, callIndex, pushback);
+            this.handleProcessedStatus(status9, callIndex, pushback);
             break;
         }
       }
@@ -18422,14 +18422,14 @@ var require_retrying_call = __commonJS({
               this.listener.onReceiveMessage(message);
             }
           },
-          onReceiveStatus: (status6) => {
+          onReceiveStatus: (status9) => {
             if (this.traceEnabled) {
               this.trace("Received status from child [" + child.getCallNumber() + "]");
             }
             if (!receivedMetadata && previousAttempts > 0) {
-              status6.metadata.set(PREVIONS_RPC_ATTEMPTS_METADATA_KEY, `${previousAttempts}`);
+              status9.metadata.set(PREVIONS_RPC_ATTEMPTS_METADATA_KEY, `${previousAttempts}`);
             }
-            this.handleChildStatus(status6, index);
+            this.handleChildStatus(status9, index);
           }
         });
         this.sendNextChildMessage(index);
@@ -18897,15 +18897,15 @@ var require_internal_channel = __commonJS({
               call.getConfig();
             }
           });
-        }, (status6) => {
+        }, (status9) => {
           if (this.channelzEnabled) {
-            this.channelzInfoTracker.trace.addTrace("CT_WARNING", "Address resolution failed with code " + status6.code + ' and details "' + status6.details + '"');
+            this.channelzInfoTracker.trace.addTrace("CT_WARNING", "Address resolution failed with code " + status9.code + ' and details "' + status9.details + '"');
           }
           if (this.configSelectionQueue.length > 0) {
             this.trace("Name resolution failed with calls queued for config selection");
           }
           if (this.configSelector === null) {
-            this.currentResolutionError = Object.assign(Object.assign({}, (0, control_plane_status_1.restrictControlPlaneStatusCode)(status6.code, status6.details)), { metadata: status6.metadata });
+            this.currentResolutionError = Object.assign(Object.assign({}, (0, control_plane_status_1.restrictControlPlaneStatusCode)(status9.code, status9.details)), { metadata: status9.metadata });
           }
           const localQueue = this.configSelectionQueue;
           this.configSelectionQueue = [];
@@ -18913,7 +18913,7 @@ var require_internal_channel = __commonJS({
             this.callRefTimerUnref();
           }
           for (const call of localQueue) {
-            call.reportResolverError(status6);
+            call.reportResolverError(status9);
           }
         });
         this.filterStackFactory = new filter_stack_1.FilterStackFactory([
@@ -19083,9 +19083,9 @@ var require_internal_channel = __commonJS({
         }
         this.callCount += 1;
       }
-      onCallEnd(status6) {
+      onCallEnd(status9) {
         if (this.channelzEnabled) {
-          if (status6.code === constants_1.Status.OK) {
+          if (status9.code === constants_1.Status.OK) {
             this.channelzInfoTracker.callTracker.addCallSucceeded();
           } else {
             this.channelzInfoTracker.callTracker.addCallFailed();
@@ -19148,8 +19148,8 @@ var require_internal_channel = __commonJS({
         };
         const call = new resolving_call_1.ResolvingCall(this, method2, finalOptions, this.filterStackFactory.clone(), callNumber);
         this.onCallStart();
-        call.addStatusWatcher((status6) => {
-          this.onCallEnd(status6);
+        call.addStatusWatcher((status9) => {
+          this.onCallEnd(status9);
         });
         return call;
       }
@@ -19316,18 +19316,18 @@ var require_server_call = __commonJS({
     var metadata_1 = require_metadata();
     function serverErrorToStatus(error, overrideTrailers) {
       var _a;
-      const status6 = {
+      const status9 = {
         code: constants_1.Status.UNKNOWN,
         details: "message" in error ? error.message : "Unknown Error",
         metadata: (_a = overrideTrailers !== null && overrideTrailers !== void 0 ? overrideTrailers : error.metadata) !== null && _a !== void 0 ? _a : null
       };
       if ("code" in error && typeof error.code === "number" && Number.isInteger(error.code)) {
-        status6.code = error.code;
+        status9.code = error.code;
         if ("details" in error && typeof error.details === "string") {
-          status6.details = error.details;
+          status9.details = error.details;
         }
       }
-      return status6;
+      return status9;
     }
     var ServerUnaryCallImpl = class extends events_1.EventEmitter {
       constructor(path, call, metadata, request) {
@@ -20351,8 +20351,8 @@ var require_server_interceptors = __commonJS({
       sendMessage: (message, next) => {
         next(message);
       },
-      sendStatus: (status6, next) => {
-        next(status6);
+      sendStatus: (status9, next) => {
+        next(status9);
       }
     };
     var ServerInterceptingCall = class {
@@ -20423,8 +20423,8 @@ var require_server_interceptors = __commonJS({
           }
         });
       }
-      sendStatus(status6) {
-        this.responder.sendStatus(status6, (interceptedStatus) => {
+      sendStatus(status9) {
+        this.responder.sendStatus(status9, (interceptedStatus) => {
           if (this.processingMetadata || this.processingMessage) {
             this.pendingStatus = interceptedStatus;
           } else {
@@ -20563,25 +20563,25 @@ var require_server_interceptors = __commonJS({
       handleTimeoutHeader(timeoutHeader) {
         const match = timeoutHeader.toString().match(DEADLINE_REGEX);
         if (match === null) {
-          const status6 = {
+          const status9 = {
             code: constants_1.Status.INTERNAL,
             details: `Invalid ${GRPC_TIMEOUT_HEADER} value "${timeoutHeader}"`,
             metadata: null
           };
           process.nextTick(() => {
-            this.sendStatus(status6);
+            this.sendStatus(status9);
           });
           return;
         }
         const timeout = +match[1] * deadlineUnitsToMs[match[2]] | 0;
         this.deadline = Date.now() + timeout;
         this.deadlineTimer = setTimeout(() => {
-          const status6 = {
+          const status9 = {
             code: constants_1.Status.DEADLINE_EXCEEDED,
             details: "Deadline exceeded",
             metadata: null
           };
-          this.sendStatus(status6);
+          this.sendStatus(status9);
         }, timeout);
       }
       checkCancelled() {
@@ -20821,13 +20821,13 @@ var require_server_interceptors = __commonJS({
           callback();
         });
       }
-      sendStatus(status6) {
+      sendStatus(status9) {
         var _a, _b, _c;
         if (this.checkCancelled()) {
           return;
         }
-        trace("Request to method " + ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) + " ended with status code: " + constants_1.Status[status6.code] + " details: " + status6.details);
-        const statusMetadata = (_c = (_b = status6.metadata) === null || _b === void 0 ? void 0 : _b.clone()) !== null && _c !== void 0 ? _c : new metadata_1.Metadata();
+        trace("Request to method " + ((_a = this.handler) === null || _a === void 0 ? void 0 : _a.path) + " ended with status code: " + constants_1.Status[status9.code] + " details: " + status9.details);
+        const statusMetadata = (_c = (_b = status9.metadata) === null || _b === void 0 ? void 0 : _b.clone()) !== null && _c !== void 0 ? _c : new metadata_1.Metadata();
         if (this.shouldSendMetrics) {
           statusMetadata.set(orca_1.GRPC_METRICS_HEADER, this.metricsRecorder.serialize());
         }
@@ -20838,9 +20838,9 @@ var require_server_interceptors = __commonJS({
               if (this.callEventTracker && !this.streamEnded) {
                 this.streamEnded = true;
                 this.callEventTracker.onStreamEnd(true);
-                this.callEventTracker.onCallEnd(status6);
+                this.callEventTracker.onCallEnd(status9);
               }
-              const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: status6.code, [GRPC_MESSAGE_HEADER]: encodeURI(status6.details) }, statusMetadata.toHttp2Headers());
+              const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: status9.code, [GRPC_MESSAGE_HEADER]: encodeURI(status9.details) }, statusMetadata.toHttp2Headers());
               this.stream.sendTrailers(trailersToSend);
               this.notifyOnCancel();
             });
@@ -20852,9 +20852,9 @@ var require_server_interceptors = __commonJS({
           if (this.callEventTracker && !this.streamEnded) {
             this.streamEnded = true;
             this.callEventTracker.onStreamEnd(true);
-            this.callEventTracker.onCallEnd(status6);
+            this.callEventTracker.onCallEnd(status9);
           }
-          const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: status6.code, [GRPC_MESSAGE_HEADER]: encodeURI(status6.details) }, defaultResponseHeaders), statusMetadata.toHttp2Headers());
+          const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: status9.code, [GRPC_MESSAGE_HEADER]: encodeURI(status9.details) }, defaultResponseHeaders), statusMetadata.toHttp2Headers());
           this.stream.respond(trailersToSend, { endStream: true });
           this.notifyOnCancel();
         }
@@ -21802,8 +21802,8 @@ var require_server = __commonJS({
                 channelzSessionInfo.lastMessageReceivedTimestamp = Date.now();
               }
             },
-            onCallEnd: (status6) => {
-              if (status6.code === constants_1.Status.OK) {
+            onCallEnd: (status9) => {
+              if (status9.code === constants_1.Status.OK) {
                 this.callTracker.addCallSucceeded();
               } else {
                 this.callTracker.addCallFailed();
@@ -22442,17 +22442,17 @@ var require_status_builder = __commonJS({
        * Builds the status object.
        */
       build() {
-        const status6 = {};
+        const status9 = {};
         if (this.code !== null) {
-          status6.code = this.code;
+          status9.code = this.code;
         }
         if (this.details !== null) {
-          status6.details = this.details;
+          status9.details = this.details;
         }
         if (this.metadata !== null) {
-          status6.metadata = this.metadata;
+          status9.metadata = this.metadata;
         }
-        return status6;
+        return status9;
       }
     };
     exports2.StatusBuilder = StatusBuilder;
@@ -24584,7 +24584,9 @@ var grpc3 = __toESM(require_src3(), 1);
 var grpc4 = __toESM(require_src3(), 1);
 var grpc5 = __toESM(require_src3(), 1);
 var import_crypto = require("crypto");
+var grpc8 = __toESM(require_src3(), 1);
 var grpc7 = __toESM(require_src3(), 1);
+var grpc9 = __toESM(require_src3(), 1);
 function varint64read() {
   const buf = this.buf;
   let pos = this.pos;
@@ -26401,15 +26403,15 @@ var ChannelSecurity = class _ChannelSecurity {
    * Convenience: choose transport by target. Loopback -> insecure (local dev); otherwise -> TLS.
    */
   static forTarget(target, tls) {
+    if (tls) {
+      return _ChannelSecurity.tls(tls);
+    }
     if (_ChannelSecurity.isLoopback(hostOf(target))) {
       return _ChannelSecurity.plaintextLoopback(target);
     }
-    if (!tls) {
-      throw new Error(
-        `TLS required for non-loopback target '${target}' (gate G8). Provide a TlsConfig.`
-      );
-    }
-    return _ChannelSecurity.tls(tls);
+    throw new Error(
+      `TLS required for non-loopback target '${target}' (gate G8). Provide a TlsConfig.`
+    );
   }
 };
 function hostOf(target) {
@@ -26643,7 +26645,7 @@ function validateAmount(field, value) {
     throw new Error(`${field} must be a finite number (wire type is double); got ${value}`);
   }
 }
-var TupagoPaymentClient = class {
+var GrpcPaymentTransport = class {
   client;
   credentialProvider;
   deadlineMillis;
@@ -26661,32 +26663,22 @@ var TupagoPaymentClient = class {
     this.deadlineMillis = opts.deadlineMillis && opts.deadlineMillis > 0 ? opts.deadlineMillis : 1e4;
     this.readRetryPolicy = opts.readRetryPolicy ?? BackoffRetryPolicy.of(3);
   }
-  /** Profile + institution catalog. */
   async getCliente(id, opts) {
     const req = GetClienteRequest.encode({ id }).finish();
     return this.executeRead("GetCliente", req, (b) => ClientePerfil.decode(b), opts);
   }
-  /** Institution catalog by clave_institucion. */
   async getCatalogo(claveInstitucion, opts) {
     const req = GetCatalogoRequest.encode({ claveInstitucion: claveInstitucion ?? "" }).finish();
     return this.executeRead("GetCatalogo", req, (b) => CatalogoInstitucion.decode(b), opts);
   }
-  /** Banxico status (JSON) for a QR. */
   async getQrStatus(idc, idCuenta, opts) {
     const req = GetStatusRequest.encode({ idc: idc ?? "", idCuenta }).finish();
     return this.executeReadView("GetQrStatus", req, opts);
   }
-  /** Banxico status (JSON) for a telefónico. */
   async getTelefonicoStatus(idc, idCuenta, opts) {
     const req = GetStatusRequest.encode({ idc: idc ?? "", idCuenta }).finish();
     return this.executeReadView("GetTelefonicoStatus", req, opts);
   }
-  /**
-   * Creates a QR payment. NEVER auto-retried (gate G4). Idempotency: pass a stable
-   * idempotencyKey; the server dedupes identical keys. A transient transport error is
-   * reclassified as TupagoUnknownOutcomeException (non-retryable) — do NOT blind-resubmit;
-   * reuse the same key or call getQrStatus (correction #3).
-   */
   async createQr(req, opts) {
     validateAmount("monto", req.monto);
     const wire = CreateQrRequest.encode({
@@ -26702,10 +26694,6 @@ var TupagoPaymentClient = class {
     }).finish();
     return this.executeFinancialView("CreateQr", wire, opts);
   }
-  /**
-   * Creates a telefonic payment. NEVER auto-retried (gate G4). Same idempotency/unknown-outcome
-   * policy as createQr.
-   */
   async createTelefonico(req, opts) {
     validateAmount("monto", req.monto);
     const wire = CreateTelefonicoRequest.encode({
@@ -26719,13 +26707,11 @@ var TupagoPaymentClient = class {
     }).finish();
     return this.executeFinancialView("CreateTelefonico", wire, opts);
   }
-  /** Shut down the underlying channel (gate G10). Idempotent. */
   close() {
     if (this.closed) return;
     this.closed = true;
     this.client.close();
   }
-  // ---- internals ----
   async executeRead(method2, reqBytes, deserialize, opts) {
     let attempt = 0;
     for (; ; ) {
@@ -26747,11 +26733,6 @@ var TupagoPaymentClient = class {
     const raw = await this.executeRead(method2, reqBytes, (b) => JsonResponse.decode(b), opts);
     return new JsonResponseView(raw);
   }
-  /**
-   * Execute a CREATE operation. NoRetryPolicy is enforced (gate G4). Crucially, a transient
-   * transport error on a financial create is reclassified as an UNKNOWN OUTCOME (non-retryable)
-   * so the caller can never blind-resubmit (correction #3).
-   */
   async executeFinancial(method2, reqBytes, deserialize, opts) {
     try {
       return await this.unary(method2, reqBytes, deserialize, opts);
@@ -26828,9 +26809,59 @@ var TupagoPaymentClient = class {
     });
   }
 };
+var TupagoPaymentClient = class {
+  transport;
+  constructor(opts) {
+    if (!opts.target) throw new Error("target is required");
+    if (!opts.credentials) throw new Error("credentials is required");
+    this.transport = opts.transport ?? new GrpcPaymentTransport({
+      target: opts.target,
+      credentials: opts.credentials,
+      tls: opts.tls,
+      deadlineMillis: opts.deadlineMillis,
+      readRetryPolicy: opts.readRetryPolicy
+    });
+  }
+  /** Profile + institution catalog. */
+  getCliente(id, opts) {
+    return this.transport.getCliente(id, opts);
+  }
+  /** Institution catalog by clave_institucion. */
+  getCatalogo(claveInstitucion, opts) {
+    return this.transport.getCatalogo(claveInstitucion, opts);
+  }
+  /** Banxico status (JSON) for a QR. */
+  getQrStatus(idc, idCuenta, opts) {
+    return this.transport.getQrStatus(idc, idCuenta, opts);
+  }
+  /** Banxico status (JSON) for a telefónico. */
+  getTelefonicoStatus(idc, idCuenta, opts) {
+    return this.transport.getTelefonicoStatus(idc, idCuenta, opts);
+  }
+  /**
+   * Creates a QR payment. NEVER auto-retried (gate G4). Idempotency: pass a stable
+   * idempotencyKey; the server dedupes identical keys. A transient transport error is
+   * reclassified as TupagoUnknownOutcomeException (non-retryable) — do NOT blind-resubmit;
+   * reuse the same key or call getQrStatus (correction #3).
+   */
+  createQr(req, opts) {
+    return this.transport.createQr(req, opts);
+  }
+  /**
+   * Creates a telefonic payment. NEVER auto-retried (gate G4). Same idempotency/unknown-outcome
+   * policy as createQr.
+   */
+  createTelefonico(req, opts) {
+    return this.transport.createTelefonico(req, opts);
+  }
+  /** Shut down the underlying transport (gate G10). Idempotent. */
+  close() {
+    this.transport.close();
+  }
+};
 
 // src/mock.ts
-var grpc8 = __toESM(require_src3(), 1);
+var grpc10 = __toESM(require_src3(), 1);
 var SERVICE = "/tupago.api.v1.PaymentService";
 function method(path, reqEnc, reqDec, resEnc, resDec) {
   return {
@@ -26852,7 +26883,7 @@ var definition = {
   CreateTelefonico: method(`${SERVICE}/CreateTelefonico`, CreateQrRequest.encode, CreateQrRequest.decode, JsonResponse.encode, JsonResponse.decode)
 };
 async function startMockServer() {
-  const server = new grpc8.Server();
+  const server = new grpc10.Server();
   server.addService(definition, {
     GetCliente: (call, cb) => cb(null, ClientePerfil.create({ cliente: { id: call.request.id, nombre: "Cliente X", claveInstitucion: "BANX", key: "k" }, catalogoInstitucion: { id: 9n, claveInstitucion: "BANX", nombreCorto: "Banco X" } })),
     GetCatalogo: (call, cb) => cb(null, CatalogoInstitucion.create({ id: 9n, claveInstitucion: call.request.claveInstitucion, nombreCorto: "Banco X" })),
@@ -26862,7 +26893,7 @@ async function startMockServer() {
     CreateTelefonico: (call, cb) => cb(null, JsonResponse.create({ json: JSON.stringify({ folio: "F-2", idempotencyKey: call.request.idempotencyKey }) }))
   });
   const port = await new Promise((resolve, reject) => {
-    server.bindAsync("127.0.0.1:0", grpc8.ServerCredentials.createInsecure(), (err, p) => {
+    server.bindAsync("127.0.0.1:0", grpc10.ServerCredentials.createInsecure(), (err, p) => {
       if (err) reject(err);
       else resolve(p);
     });

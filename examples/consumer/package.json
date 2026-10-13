@@ -6,8 +6,11 @@
   "description": "Independent consumer project that exercises the published @tupago/tupago3-sdk-typescript package.",
   "scripts": {
     "start": "tsx src/consumer.ts",
+    "start:rest": "tsx src/consumer-rest.ts",
     "start:cjs": "node dist-cjs/consumer.cjs",
-    "build:cjs": "esbuild src/consumer.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer.cjs"
+    "build:cjs": "esbuild src/consumer.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer.cjs",
+    "build:cjs:rest": "esbuild src/consumer-rest.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer-rest.cjs",
+    "start:rest:cjs": "node dist-cjs/consumer-rest.cjs"
   },
   "dependencies": {
     "@tupago/tupago3-sdk-typescript": "file:../../tupago-tupago3-sdk-typescript-0.1.0.tgz"
