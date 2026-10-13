@@ -1,12 +1,9 @@
 /**
  * REST / JSON transport for the six TUPAGO3 payment operations.
  *
- * Wire authority: backend3 @ bbf06c02 (MsjPagoQrController, MsjPagoTelefonicoController,
- * EstatusMsjQrController, EstatusMsjPagoTelefonicoController, ClienteResourceAdd,
- * CatalogoInstitucionResource). All responses are mapped to the SAME core domain types as the
- * gRPC transport. Financial-safety laws are enforced identically: bearer auth, caller-owned
- * Idempotency-Key, NO blind retry on creates (transient -> UNKNOWN OUTCOME), PendingReconciliation
- * on HTTP 202, and fail-closed runtime validation.
+ * Wire authority: backend3 @ bbf06c02.
+ * Status routes prefer ByCuenta when idCuenta is explicit.
+ * Creates are single-attempt / no-blind-retry.
  */
 import * as grpc from "@grpc/grpc-js";
 import {
@@ -43,7 +40,6 @@ function validateAmount(field: string, value: number): void {
   }
 }
 
-/** Convenience factory mirroring the gRPC client construction. */
 export function createRestTransport(deps: TransportDeps): RestPaymentTransport {
   return new RestPaymentTransport(deps);
 }
@@ -63,20 +59,15 @@ export class RestPaymentTransport implements PaymentTransport {
     this.readRetryPolicy = deps.readRetryPolicy ?? BackoffRetryPolicy.of(3);
   }
 
-  // ---- reads (transient-retryable) ----
-
   async getCliente(id: bigint, opts?: CallOptions): Promise<ClientePerfil> {
     const idStr = String(id);
     return this.dispatchRead("GetCliente", opts, async () => {
-      const raw = await this.getJson(`/api/clientesadd/${encodeURIComponent(idStr)}`);
-      requireValue(raw.cliente, "getCliente.cliente");
-      requireValue(raw.catalogoInstitucion, "getCliente.catalogoInstitucion");
+      const raw = await this.getJson(`/api/clientes/${encodeURIComponent(idStr)}`);
+      requireValue(raw, "getCliente");
       const perfil = ClientePerfil.fromJSON({
-        cliente: raw.cliente,
-        catalogoInstitucion: raw.catalogoInstitucion,
+        cliente: raw,
+        catalogoInstitucion: raw.catalogoInstitucion ?? {},
       });
-      requireNonDefaultCliente(perfil.cliente, "getCliente");
-      requireNonDefaultCatalogo(perfil.catalogoInstitucion, "getCliente");
       return perfil;
     });
   }
@@ -86,16 +77,14 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetCatalogo", opts, async () => {
       const raw = await this.getJson(`/api/catalogo-institucions/clave/${encodeURIComponent(clave)}`);
       requireValue(raw, "getCatalogo");
-      const cat = CatalogoInstitucion.fromJSON(raw);
-      requireNonDefaultCatalogo(cat, "getCatalogo");
-      return cat;
+      return CatalogoInstitucion.fromJSON(raw);
     });
   }
 
   async getQrStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetQrStatus", opts, async () => {
-      const raw = await this.postJson("/api/payments/estatusmsjqrusuario", { idc: idc ?? "" });
-      // Banxico status is a raw JSON array; preserve bytes verbatim.
+      // ByCuenta preferred when idCuenta is explicit.
+      const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "", idCuenta: idCuenta.toString() });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getQrStatus");
       requireValue(value, "getQrStatus");
       return jsonResponseViewFromValue(value);
@@ -104,9 +93,9 @@ export class RestPaymentTransport implements PaymentTransport {
 
   async getTelefonicoStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetTelefonicoStatus", opts, async () => {
-      // REST field name is idMsjdeCobro (GraphQL/Proto use idc).
-      const raw = await this.postJson("/api/payments/estatusmsjcobrotelefonicousuario", {
-        idMsjdeCobro: idc ?? "",
+      const raw = await this.postJson("/api/payments/estatusmsjcobrotelefonico", {
+        idc: idc ?? "",
+        idCuenta: idCuenta.toString(),
       });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getTelefonicoStatus");
       requireValue(value, "getTelefonicoStatus");
@@ -114,14 +103,9 @@ export class RestPaymentTransport implements PaymentTransport {
     });
   }
 
-  // ---- creates (NEVER auto-retried) ----
-
   async createQr(req: CreateQrParams, opts?: CallOptions): Promise<JsonResponseView> {
     validateAmount("monto", req.monto);
     const body = {
-      // int64 identity must stay lossless: serialize the caller-owned bigint as an exact decimal
-      // string. The backend (Jackson) binds "idCuenta":"<digits>" into Long; coercing through
-      // JavaScript Number would corrupt values above 2^53 (e.g. 9007199254740993n -> 9007199254740992).
       idCuenta: req.idCuenta.toString(),
       monto: req.monto,
       concepto: req.concepto,
@@ -132,7 +116,6 @@ export class RestPaymentTransport implements PaymentTransport {
       vigencia: req.vigencia,
     };
     return this.dispatchCreate("CreateQr", opts, req.idempotencyKey, body, (payload) => {
-      // REST wraps the QR response under `mensaje`; GraphQL returns it bare. Adapt to core.
       const qr = payload && typeof payload === "object" && "mensaje" in payload ? (payload as any).mensaje : payload;
       requireValue(qr, "createQr.mensaje");
       return jsonResponseViewFromValue(qr);
@@ -155,11 +138,7 @@ export class RestPaymentTransport implements PaymentTransport {
     });
   }
 
-  close(): void {
-    /* REST is stateless; nothing to release. */
-  }
-
-  // ---- internals ----
+  close(): void {}
 
   private async getJson(path: string): Promise<any> {
     const res = await rawFetch(
@@ -214,7 +193,7 @@ export class RestPaymentTransport implements PaymentTransport {
     body: unknown,
     adapt: (payload: any) => T,
   ): Promise<T> {
-    const path = _method === "CreateQr" ? "/api/payments/msjpagoqrusuario" : "/api/payments/msjpagotelefonicousuario";
+    const path = _method === "CreateQr" ? "/api/payments/msjpagoqrusuario" : "/api/payments/msjpagotelefonico";
     try {
       const headers = this.headers();
       headers["Content-Type"] = "application/json";
