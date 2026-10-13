@@ -119,7 +119,10 @@ export class RestPaymentTransport implements PaymentTransport {
   async createQr(req: CreateQrParams, opts?: CallOptions): Promise<JsonResponseView> {
     validateAmount("monto", req.monto);
     const body = {
-      idCuenta: Number(req.idCuenta),
+      // int64 identity must stay lossless: serialize the caller-owned bigint as an exact decimal
+      // string. The backend (Jackson) binds "idCuenta":"<digits>" into Long; coercing through
+      // JavaScript Number would corrupt values above 2^53 (e.g. 9007199254740993n -> 9007199254740992).
+      idCuenta: req.idCuenta.toString(),
       monto: req.monto,
       concepto: req.concepto,
       referenciaNumerica: req.referenciaNumerica,

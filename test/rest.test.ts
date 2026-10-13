@@ -187,6 +187,24 @@ describe("REST transport — creates", () => {
     await t.createQr(QR_REQ);
     expect(lastReq?.headers["idempotency-key"]).toBe("idem-001");
   });
+
+  it("C1 createQr preserves int64 idCuenta losslessly as an exact decimal string", async () => {
+    json(200, { mensaje: { id: "QR1" } });
+    const t = makeTransport();
+    const big = 9007199254740993n; // exceeds Number.MAX_SAFE_INTEGER
+    await t.createQr({ ...QR_REQ, idCuenta: big });
+    const body = JSON.parse(lastReq!.body);
+    // exact decimal digits, quoted (NOT coerced through JavaScript Number)
+    expect(body.idCuenta).toBe("9007199254740993");
+    expect(lastReq!.body).toContain('"idCuenta":"9007199254740993"');
+    expect(lastReq!.body).not.toContain("9007199254740992"); // no precision loss
+    expect(lastReq!.body).not.toMatch(/e[+-]\d+/i); // no scientific notation
+
+    // Long.MAX_VALUE also round-trips as an exact decimal string
+    json(200, { mensaje: { id: "QR2" } });
+    await t.createQr({ ...QR_REQ, idCuenta: 9223372036854775807n });
+    expect(JSON.parse(lastReq!.body).idCuenta).toBe("9223372036854775807");
+  });
 });
 
 describe("REST transport — auth", () => {

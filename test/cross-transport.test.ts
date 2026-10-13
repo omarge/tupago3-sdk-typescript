@@ -344,3 +344,89 @@ describe("Cross-transport READ retry attempt conformance (C5 GetCliente)", () =>
     gqlSrv.close();
   });
 });
+
+describe("Cross-transport int64 identity conformance (C1 CreateQr idCuenta)", () => {
+  const creds: CredentialProvider = { token: () => "valid.jwt" };
+  const BIG = 9007199254740993n; // > Number.MAX_SAFE_INTEGER
+  const BIG_STR = "9007199254740993";
+  const MAX = 9223372036854775807n; // Long.MAX_VALUE
+  const MAX_STR = "9223372036854775807";
+  const QR = (idCuenta: bigint) => ({
+    idCuenta,
+    monto: 100,
+    concepto: "p",
+    referenciaNumerica: 1,
+    nombreCliente: "J",
+    email: "a@b.c",
+    tipoPago: 1,
+    vigencia: 60,
+    idempotencyKey: "X-KEY",
+  });
+
+  it("REST, GraphQL and gRPC preserve the exact int64 idCuenta (semantic identity)", async () => {
+    let restBody = "";
+    const rest = http.createServer((req, res) => {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => {
+        restBody = b;
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ mensaje: { id: "QR1" } }));
+      });
+    });
+    await new Promise<void>((r) => rest.listen(0, "127.0.0.1", () => r()));
+    const restBase = `http://127.0.0.1:${(rest.address() as any).port}`;
+
+    let gqlBody = "";
+    const gql = http.createServer((req, res) => {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => {
+        gqlBody = b;
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ data: { q: { id: "QR1" } } }));
+      });
+    });
+    await new Promise<void>((r) => gql.listen(0, "127.0.0.1", () => r()));
+    const gqlBase = `http://127.0.0.1:${(gql.address() as any).port}`;
+
+    const grpcServer = new MockPaymentServer({
+      behaviors: { CreateQr: () => ({ kind: "response", json: '{"id":"QR1"}' }) },
+    });
+    await grpcServer.start();
+
+    const restTr = createRestTransport({ target: restBase, credentials: creds });
+    const gqlTr = createGraphqlTransport({ target: gqlBase, credentials: creds });
+    const grpcTr = new GrpcPaymentTransport({ target: grpcServer.target, credentials: creds });
+
+    await Promise.all([restTr.createQr(QR(BIG)), gqlTr.createQr(QR(BIG)), grpcTr.createQr(QR(BIG))]);
+
+    // REST: exact decimal string on the wire, no precision loss, no scientific notation
+    expect(restBody).toContain(`"idCuenta":"${BIG_STR}"`);
+    expect(restBody).not.toContain("9007199254740992");
+    expect(restBody).not.toMatch(/e[+-]\d+/i);
+
+    // GraphQL: idempotencyKey + idCuenta decimal string variable
+    const gqlVars = JSON.parse(gqlBody).variables;
+    expect(gqlVars.in.idCuenta).toBe(BIG_STR);
+    expect(gqlVars.k).toBe("X-KEY");
+
+    // gRPC: decoded request carries the exact bigint (int64)
+    const captured = grpcServer.captured.find((c) => c.method === "CreateQr");
+    expect((captured?.request as any).idCuenta).toBe(BIG);
+
+    // Long.MAX_VALUE round-trips on REST and gRPC too
+    await restTr.createQr(QR(MAX));
+    expect(restBody).toContain(`"idCuenta":"${MAX_STR}"`);
+    await grpcTr.createQr(QR(MAX));
+    const capturedMax = grpcServer.captured.filter((c) => c.method === "CreateQr")[1];
+    expect((capturedMax?.request as any).idCuenta).toBe(MAX);
+
+    restTr.close();
+    gqlTr.close();
+    grpcTr.close();
+    rest.close();
+    gql.close();
+    await grpcServer.stop();
+  });
+});
