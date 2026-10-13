@@ -7,10 +7,13 @@
   "scripts": {
     "start": "tsx src/consumer.ts",
     "start:rest": "tsx src/consumer-rest.ts",
+    "start:graphql": "tsx src/consumer-graphql.ts",
     "start:cjs": "node dist-cjs/consumer.cjs",
     "build:cjs": "esbuild src/consumer.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer.cjs",
     "build:cjs:rest": "esbuild src/consumer-rest.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer-rest.cjs",
-    "start:rest:cjs": "node dist-cjs/consumer-rest.cjs"
+    "build:cjs:graphql": "esbuild src/consumer-graphql.ts --bundle --platform=node --format=cjs --outfile=dist-cjs/consumer-graphql.cjs",
+    "start:rest:cjs": "node dist-cjs/consumer-rest.cjs",
+    "start:graphql:cjs": "node dist-cjs/consumer-graphql.cjs"
   },
   "dependencies": {
     "@tupago/tupago3-sdk-typescript": "file:../../tupago-tupago3-sdk-typescript-0.1.0.tgz"

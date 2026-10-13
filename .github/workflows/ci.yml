@@ -68,6 +68,12 @@ jobs:
       - name: Build & run consumer REST (CJS via esbuild)
         working-directory: examples/consumer
         run: npm run build:cjs:rest && npm run start:rest:cjs
+      - name: Run consumer GraphQL (ESM via tsx)
+        working-directory: examples/consumer
+        run: npm run start:graphql
+      - name: Build & run consumer GraphQL (CJS via esbuild)
+        working-directory: examples/consumer
+        run: npm run build:cjs:graphql && npm run start:graphql:cjs
 
   audit:
     runs-on: ubuntu-latest

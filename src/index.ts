@@ -17,6 +17,10 @@ export {
 export {
   GrpcPaymentTransport,
 } from "./transport/grpc.js";
+export {
+  GraphqlPaymentTransport,
+  createGraphqlTransport,
+} from "./transport/graphql.js";
 export type {
   PaymentTransport,
   TransportDeps,
