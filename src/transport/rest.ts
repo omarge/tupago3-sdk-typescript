@@ -64,17 +64,19 @@ export class RestPaymentTransport implements PaymentTransport {
   async getCliente(id: bigint, opts?: CallOptions): Promise<ClientePerfil> {
     const idStr = String(id);
     return this.dispatchRead("GetCliente", opts, async () => {
-      // /api/clientesadd/{id} returns the cliente together with its associated
-      // CatalogoInstitucion by clave (composed response).
-      const raw = await this.getJson(`/api/clientesadd/${encodeURIComponent(idStr)}`);
-      requireValue(raw, "getCliente");
-      const cliente = (raw as Record<string, unknown>).cliente ?? raw;
-      requireNonDefaultCliente(cliente, "getCliente");
-      const catalogo = (raw as Record<string, unknown>).catalogoInstitucion ?? {};
-      if (catalogo && typeof catalogo === "object" && Object.keys(catalogo).length > 0) {
-        requireNonDefaultCatalogo(catalogo, "getCliente.catalogo");
-      }
-      return ClientePerfil.fromJSON({ cliente, catalogoInstitucion: catalogo });
+      // Backend3 /api/clientes/{id} returns ClienteDTO only. Compose the public
+      // ClientePerfil with a second authoritative catalog lookup by claveInstitucion.
+      const clienteRaw = await this.getJson(`/api/clientes/${encodeURIComponent(idStr)}`);
+      requireValue(clienteRaw, "getCliente");
+      requireNonDefaultCliente(clienteRaw, "getCliente");
+      const cliente = clienteRaw as Record<string, unknown>;
+      const clave = String(cliente.claveInstitucion);
+      const catalogoRaw = await this.getJson(
+        `/api/catalogo-institucions/clave/${encodeURIComponent(clave)}`,
+      );
+      requireValue(catalogoRaw, "getCliente.catalogo");
+      requireNonDefaultCatalogo(catalogoRaw, "getCliente.catalogo");
+      return ClientePerfil.fromJSON({ cliente: clienteRaw, catalogoInstitucion: catalogoRaw });
     });
   }
 
