@@ -65,7 +65,7 @@ async function startHarness(): Promise<Harness> {
     if (url.startsWith("/api/catalogo-institucions/clave/")) {
       return send({ id: 9, claveInstitucion: CLAVE, nombreCorto: "Banco X" });
     }
-    if (url === "/api/payments/estatusmsjqrusuario" || url === "/api/payments/estatusmsjcobrotelefonicousuario") {
+    if (url === "/api/payments/estatusmsjqr" || url === "/api/payments/estatusmsjcobrotelefonico") {
       return send(JSON.parse(STATUS_JSON));
     }
     if (url === "/api/payments/msjpagoqrusuario") {
