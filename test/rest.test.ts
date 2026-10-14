@@ -144,7 +144,7 @@ describe("REST transport — reads", () => {
     const v = await t.getQrStatus("x", 1n);
     expect(lastReq?.method).toBe("POST");
     expect(lastReq?.path).toBe("/api/payments/estatusmsjqr");
-    expect(JSON.parse(lastReq!.body)).toEqual({ idc: "x" });
+    expect(JSON.parse(lastReq!.body)).toEqual({ idc: "x", idCuenta: "1" });
     expect(Array.isArray(v.parsed())).toBe(true);
   });
 
@@ -153,7 +153,7 @@ describe("REST transport — reads", () => {
     const t = makeTransport();
     const v = await t.getTelefonicoStatus("y", 1n);
     expect(lastReq?.path).toBe("/api/payments/estatusmsjcobrotelefonico");
-    expect(JSON.parse(lastReq!.body)).toEqual({ idMsjdeCobro: "y" });
+    expect(JSON.parse(lastReq!.body)).toEqual({ idCuenta: "1", idMsjdeCobro: "y" });
     expect(Array.isArray(v.parsed())).toBe(true);
   });
 });
@@ -256,6 +256,18 @@ describe("REST transport — error mapping", () => {
     raw(200, "application/json", "{not json");
     const t = makeTransport();
     await expect(t.getCatalogo("123")).rejects.toBeInstanceOf(TupagoInvalidArgumentException);
+  });
+
+  it("create 503 after dispatch -> UnknownOutcome", async () => {
+    raw(503, "application/json", JSON.stringify({ error: "down" }));
+    const t = makeTransport();
+    await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
+  });
+
+  it("malformed create success -> UnknownOutcome", async () => {
+    raw(200, "application/json", "{not json");
+    const t = makeTransport();
+    await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
   });
 
   it("empty success payload -> InvalidArgument (requireValue)", async () => {
