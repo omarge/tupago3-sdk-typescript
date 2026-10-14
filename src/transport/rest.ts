@@ -219,7 +219,7 @@ export class RestPaymentTransport implements PaymentTransport {
           `ambiguous create outcome: HTTP ${res.status} redirect rejected after dispatch`,
         );
       }
-      if ([502, 503, 504].includes(res.status)) {
+      if (res.status >= 500) {
         throw new TupagoUnknownOutcomeException(
           grpc.status.UNKNOWN,
           `ambiguous create outcome: HTTP ${res.status} after dispatch`,
