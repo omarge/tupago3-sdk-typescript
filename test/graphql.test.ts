@@ -216,6 +216,24 @@ describe("GraphQL transport — error mapping", () => {
     await expect(t.getCatalogo("301")).rejects.toBeInstanceOf(TupagoInvalidArgumentException);
   });
 
+  it("create HTTP 503 -> UnknownOutcome", async () => {
+    responder = () => httpError(503, { errors: [{ message: "down" }] });
+    const t = makeTransport();
+    await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
+  });
+
+  it("malformed create success -> UnknownOutcome", async () => {
+    responder = () => ({ status: 200, payload: "{not json" });
+    const t = makeTransport();
+    await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
+  });
+
+  it("unknown GraphQL create error -> UnknownOutcome", async () => {
+    responder = () => ok({ errors: [{ message: "mystery", extensions: { code: "TOTALLY_UNKNOWN" } }], data: { q: null } });
+    const t = makeTransport();
+    await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
+  });
+
   it("missing data envelope -> InvalidArgument", async () => {
     responder = () => ok({ errors: [] });
     const t = makeTransport();
