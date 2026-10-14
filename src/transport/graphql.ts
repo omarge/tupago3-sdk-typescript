@@ -23,8 +23,11 @@ import {
   PENDING_RECONCILIATION_CODE,
   TupagoException,
   TupagoUnauthenticatedException,
+  TupagoPermissionDeniedException,
   TupagoNotFoundException,
   TupagoInvalidArgumentException,
+  TupagoAlreadyExistsException,
+  TupagoFailedPreconditionException,
   TupagoInternalException,
   TupagoAbortedException,
   TupagoUnknownOutcomeException,
@@ -158,7 +161,7 @@ export class GraphqlPaymentTransport implements PaymentTransport {
 
   // ---- internals ----
 
-  private async post(body: unknown, opts?: CallOptions): Promise<any> {
+  private async post(body: unknown, opts?: CallOptions, isCreate = false): Promise<any> {
     const headers = bearerHeader(this.credentials);
     headers["Content-Type"] = "application/json";
     const res = await rawFetch(
@@ -167,8 +170,34 @@ export class GraphqlPaymentTransport implements PaymentTransport {
       opts,
       this.deadlineMillis,
     );
+    if (res.status >= 300 && res.status < 400) {
+      if (isCreate) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous GraphQL create outcome: HTTP ${res.status} redirect rejected after dispatch`,
+        );
+      }
+      throw mapHttpStatusError(res.status, res.text);
+    }
+    if (isCreate && [502, 503, 504].includes(res.status)) {
+      throw new TupagoUnknownOutcomeException(
+        grpc.status.UNKNOWN,
+        `ambiguous GraphQL create outcome: HTTP ${res.status} after dispatch`,
+      );
+    }
     if (res.status >= 400) throw mapHttpStatusError(res.status, res.text);
-    return parseJsonOrFail(res.text, "graphql");
+    try {
+      return parseJsonOrFail(res.text, "graphql");
+    } catch (e) {
+      if (isCreate) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          "ambiguous GraphQL create outcome: malformed success response",
+          e,
+        );
+      }
+      throw e;
+    }
   }
 
   private resultOrThrow(payload: any, _isCreate: boolean): any {
@@ -180,9 +209,15 @@ export class GraphqlPaymentTransport implements PaymentTransport {
           `${PENDING_RECONCILIATION_CODE}: ${pending.message ?? "payment pending reconciliation"}`,
         );
       }
-      throw mapGraphQLError(payload.errors);
+      throw mapGraphQLError(payload.errors, _isCreate);
     }
     if (payload == null || typeof payload !== "object" || !("data" in payload) || payload.data == null) {
+      if (_isCreate) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          "ambiguous create outcome: GraphQL response missing data envelope",
+        );
+      }
       throw new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, "GraphQL response missing data envelope");
     }
     return (payload.data as Record<string, unknown>)[ALIAS];
@@ -197,7 +232,7 @@ export class GraphqlPaymentTransport implements PaymentTransport {
     let attempt = 0;
     for (;;) {
       try {
-        const payload = await this.post(body, opts);
+        const payload = await this.post(body, opts, false);
         return adapt(this.resultOrThrow(payload, false));
       } catch (e) {
         const te = this.normalizeReadError(e);
@@ -218,8 +253,18 @@ export class GraphqlPaymentTransport implements PaymentTransport {
     adapt: (data: any) => T,
   ): Promise<T> {
     try {
-      const payload = await this.post(body, opts);
-      return adapt(this.resultOrThrow(payload, true));
+      const payload = await this.post(body, opts, true);
+      const data = this.resultOrThrow(payload, true);
+      try {
+        return adapt(data);
+      } catch (e) {
+        if (e instanceof TupagoUnknownOutcomeException) throw e;
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: invalid GraphQL success payload: ${(e as Error)?.message ?? e}`,
+          e,
+        );
+      }
       } catch (e) {
         if (e instanceof NetworkError) throw networkToException(e, true);
         if (e instanceof TupagoException) throw e;
@@ -248,18 +293,34 @@ export class GraphqlPaymentTransport implements PaymentTransport {
   }
 }
 
-function mapGraphQLError(errors: any[]): TupagoException {
+function mapGraphQLError(errors: any[], isCreate = false): TupagoException {
   const e0 = errors[0] ?? {};
   const code: string = e0?.extensions?.code ?? e0?.extensions?.classification ?? "";
   const msg: string = e0?.message ?? "GraphQL error";
   if (code === "UNAUTHENTICATED" || /unauth/i.test(msg)) {
     return new TupagoUnauthenticatedException(grpc.status.UNAUTHENTICATED, msg);
   }
+  if (code === "PERMISSION_DENIED") {
+    return new TupagoPermissionDeniedException(grpc.status.PERMISSION_DENIED, msg);
+  }
   if (code === "NOT_FOUND" || /not found/i.test(msg)) {
     return new TupagoNotFoundException(grpc.status.NOT_FOUND, msg);
   }
-  if (code === "INTERNAL" || /internal/i.test(msg)) {
-    return new TupagoInternalException(grpc.status.INTERNAL, msg);
+  if (code === "IDEMPOTENCY_CONFLICT" || code === "ALREADY_EXISTS") {
+    return new TupagoAlreadyExistsException(grpc.status.ALREADY_EXISTS, msg);
   }
-  return new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, msg);
+  if (code === "POLICY_REVISION_CONFLICT" || code === "FAILED_PRECONDITION") {
+    return new TupagoFailedPreconditionException(grpc.status.FAILED_PRECONDITION, msg);
+  }
+  if (code === "INVALID_ARGUMENT" || code === "PAYMENT_LIMIT") {
+    return new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, msg);
+  }
+  if (code === "INTERNAL") {
+    return isCreate
+      ? new TupagoUnknownOutcomeException(grpc.status.UNKNOWN, `ambiguous GraphQL create outcome: ${msg}`)
+      : new TupagoInternalException(grpc.status.INTERNAL, msg);
+  }
+  return isCreate
+    ? new TupagoUnknownOutcomeException(grpc.status.UNKNOWN, `ambiguous GraphQL create outcome: ${msg}`)
+    : new TupagoInternalException(grpc.status.INTERNAL, msg);
 }

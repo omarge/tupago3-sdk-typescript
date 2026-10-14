@@ -1,7 +1,7 @@
 {
   "name": "@tupago/tupago3-sdk-typescript",
   "version": "0.1.0",
-  "description": "TUPAGO3 gRPC TypeScript SDK client (PaymentService) — frozen contract @ backend3 22ad947. Controlled internal distribution only.",
+  "description": "TUPAGO3 TypeScript SDK client — gRPC, REST and GraphQL transports; backend3 contract @ bbf06c02. Controlled internal distribution only.",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "main": "./dist/index.cjs",

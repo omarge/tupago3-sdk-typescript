@@ -83,7 +83,7 @@ export async function rawFetch(
 ): Promise<RawHttp> {
   const { signal, release } = resolveSignal(opts, deadlineMillis);
   try {
-    const res = await fetch(url, { ...init, signal });
+    const res = await fetch(url, { ...init, signal, redirect: "manual" });
     const text = await res.text();
     return { status: res.status, statusText: res.statusText, headers: res.headers, text };
   } catch (e) {
