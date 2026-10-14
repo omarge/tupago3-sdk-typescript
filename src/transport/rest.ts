@@ -2,6 +2,8 @@
  * REST / JSON transport for the six TUPAGO3 payment operations.
  *
  * Wire authority: backend3 @ bbf06c02.
+ * C2 uses /msjpagotelefonicousuario (resolveSingleOwnedCliente).
+ * C4 body uses idMsjdeCobro (NOT idc).
  * Status routes prefer ByCuenta when idCuenta is explicit.
  * Creates are single-attempt / no-blind-retry.
  */
@@ -64,11 +66,16 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetCliente", opts, async () => {
       const raw = await this.getJson(`/api/clientes/${encodeURIComponent(idStr)}`);
       requireValue(raw, "getCliente");
-      const perfil = ClientePerfil.fromJSON({
-        cliente: raw,
-        catalogoInstitucion: raw.catalogoInstitucion ?? {},
-      });
-      return perfil;
+      requireNonDefaultCliente(raw, "getCliente");
+      // Compose catalog if claveInstitucion present.
+      let catalogo = {};
+      if (raw.claveInstitucion) {
+        try {
+          catalogo = await this.getJson(`/api/catalogo-institucions/clave/${encodeURIComponent(raw.claveInstitucion)}`);
+          requireNonDefaultCatalogo(catalogo, "getCliente.catalogo");
+        } catch { /* catalog composition is best-effort */ }
+      }
+      return ClientePerfil.fromJSON({ cliente: raw, catalogoInstitucion: catalogo });
     });
   }
 
@@ -77,13 +84,13 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetCatalogo", opts, async () => {
       const raw = await this.getJson(`/api/catalogo-institucions/clave/${encodeURIComponent(clave)}`);
       requireValue(raw, "getCatalogo");
+      requireNonDefaultCatalogo(raw, "getCatalogo");
       return CatalogoInstitucion.fromJSON(raw);
     });
   }
 
   async getQrStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetQrStatus", opts, async () => {
-      // ByCuenta preferred when idCuenta is explicit.
       const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "", idCuenta: idCuenta.toString() });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getQrStatus");
       requireValue(value, "getQrStatus");
@@ -93,9 +100,10 @@ export class RestPaymentTransport implements PaymentTransport {
 
   async getTelefonicoStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetTelefonicoStatus", opts, async () => {
+      // C4 body uses idMsjdeCobro (NOT idc) per backend3 DTO.
       const raw = await this.postJson("/api/payments/estatusmsjcobrotelefonico", {
-        idc: idc ?? "",
         idCuenta: idCuenta.toString(),
+        idMsjdeCobro: idc ?? "",
       });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getTelefonicoStatus");
       requireValue(value, "getTelefonicoStatus");
@@ -193,7 +201,8 @@ export class RestPaymentTransport implements PaymentTransport {
     body: unknown,
     adapt: (payload: any) => T,
   ): Promise<T> {
-    const path = _method === "CreateQr" ? "/api/payments/msjpagoqrusuario" : "/api/payments/msjpagotelefonico";
+    // C2 CANONICAL: /msjpagotelefonicousuario (resolveSingleOwnedCliente)
+    const path = _method === "CreateQr" ? "/api/payments/msjpagoqrusuario" : "/api/payments/msjpagotelefonicousuario";
     try {
       const headers = this.headers();
       headers["Content-Type"] = "application/json";
