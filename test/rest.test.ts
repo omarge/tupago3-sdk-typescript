@@ -115,15 +115,26 @@ afterEach(() => {
 });
 
 describe("REST transport — reads", () => {
-  it("C5 getCliente maps cliente + catalogoInstitucion", async () => {
-    json(200, {
-      cliente: { id: 1, nombre: "PRODTEST01", claveInstitucion: "123", key: "abc" },
-      catalogoInstitucion: { id: 9, claveInstitucion: "123", nombreCorto: "BANCO X" },
-    });
+  it("C5 getCliente composes ClienteDTO + catalogo lookup", async () => {
+    handler = (req, res) => {
+      if (req.url === "/api/clientes/1") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ id: 1, nombre: "PRODTEST01", claveInstitucion: "123", key: "abc" }));
+        return;
+      }
+      if (req.url === "/api/catalogo-institucions/clave/123") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ id: 9, claveInstitucion: "123", nombreCorto: "BANCO X" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    };
     const t = makeTransport();
     const r: ClientePerfil = await t.getCliente(1n);
+    expect(requestCount).toBe(2);
     expect(lastReq?.method).toBe("GET");
-    expect(lastReq?.path).toBe("/api/clientesadd/1");
+    expect(lastReq?.path).toBe("/api/catalogo-institucions/clave/123");
     expect(r.cliente?.nombre).toBe("PRODTEST01");
     expect(r.catalogoInstitucion?.nombreCorto).toBe("BANCO X");
     expect(lastReq?.headers["authorization"]).toBe("Bearer eyJ.test.jwt");
