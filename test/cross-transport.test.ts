@@ -59,8 +59,8 @@ async function startHarness(): Promise<Harness> {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(obj));
     };
-    if (url.startsWith(`/api/clientesadd/`)) {
-      return send({ cliente: { id: 123, nombre: "Juan", claveInstitucion: "BANX", key: "k1" }, catalogoInstitucion: { id: 9, claveInstitucion: "BANX", nombreCorto: "Banco X" } });
+    if (url.startsWith(`/api/clientes/`)) {
+      return send({ id: 123, nombre: "Juan", claveInstitucion: "BANX", key: "k1" });
     }
     if (url.startsWith("/api/catalogo-institucions/clave/")) {
       return send({ id: 9, claveInstitucion: CLAVE, nombreCorto: "Banco X" });
