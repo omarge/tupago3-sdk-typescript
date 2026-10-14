@@ -90,7 +90,7 @@ export class RestPaymentTransport implements PaymentTransport {
 
   async getQrStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetQrStatus", opts, async () => {
-      const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "" });
+      const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "", idCuenta: idCuenta.toString() });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getQrStatus");
       requireValue(value, "getQrStatus");
       return jsonResponseViewFromValue(value);
@@ -101,6 +101,7 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetTelefonicoStatus", opts, async () => {
       // C4 body uses idMsjdeCobro (NOT idc) per backend3 DTO.
       const raw = await this.postJson("/api/payments/estatusmsjcobrotelefonico", {
+        idCuenta: idCuenta.toString(),
         idMsjdeCobro: idc ?? "",
       });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getTelefonicoStatus");
@@ -212,9 +213,39 @@ export class RestPaymentTransport implements PaymentTransport {
         this.deadlineMillis,
       );
       if (res.status === 202) throw mapHttpStatusError(202, res.text);
+      if (res.status >= 300 && res.status < 400) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: HTTP ${res.status} redirect rejected after dispatch`,
+        );
+      }
+      if ([502, 503, 504].includes(res.status)) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: HTTP ${res.status} after dispatch`,
+        );
+      }
       if (res.status >= 400) throw mapHttpStatusError(res.status, res.text);
-      const payload = parseJsonOrFail(res.text, path);
-      return adapt(payload);
+      let payload: any;
+      try {
+        payload = parseJsonOrFail(res.text, path);
+      } catch (e) {
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: malformed success response from ${path}`,
+          e,
+        );
+      }
+      try {
+        return adapt(payload);
+      } catch (e) {
+        if (e instanceof TupagoUnknownOutcomeException) throw e;
+        throw new TupagoUnknownOutcomeException(
+          grpc.status.UNKNOWN,
+          `ambiguous create outcome: invalid success payload from ${path}`,
+          e,
+        );
+      }
     } catch (e) {
       if (e instanceof NetworkError) throw networkToException(e, true);
       if (e instanceof TupagoException) throw e;
