@@ -143,7 +143,7 @@ describe("REST transport — reads", () => {
     const t = makeTransport();
     const v = await t.getQrStatus("x", 1n);
     expect(lastReq?.method).toBe("POST");
-    expect(lastReq?.path).toBe("/api/payments/estatusmsjqrusuario");
+    expect(lastReq?.path).toBe("/api/payments/estatusmsjqr");
     expect(JSON.parse(lastReq!.body)).toEqual({ idc: "x" });
     expect(Array.isArray(v.parsed())).toBe(true);
   });
@@ -152,7 +152,7 @@ describe("REST transport — reads", () => {
     json(200, [{ estado: "PENDIENTE" }]);
     const t = makeTransport();
     const v = await t.getTelefonicoStatus("y", 1n);
-    expect(lastReq?.path).toBe("/api/payments/estatusmsjcobrotelefonicousuario");
+    expect(lastReq?.path).toBe("/api/payments/estatusmsjcobrotelefonico");
     expect(JSON.parse(lastReq!.body)).toEqual({ idMsjdeCobro: "y" });
     expect(Array.isArray(v.parsed())).toBe(true);
   });
