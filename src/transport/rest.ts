@@ -64,18 +64,17 @@ export class RestPaymentTransport implements PaymentTransport {
   async getCliente(id: bigint, opts?: CallOptions): Promise<ClientePerfil> {
     const idStr = String(id);
     return this.dispatchRead("GetCliente", opts, async () => {
-      const raw = await this.getJson(`/api/clientes/${encodeURIComponent(idStr)}`);
+      // /api/clientesadd/{id} returns the cliente together with its associated
+      // CatalogoInstitucion by clave (composed response).
+      const raw = await this.getJson(`/api/clientesadd/${encodeURIComponent(idStr)}`);
       requireValue(raw, "getCliente");
-      requireNonDefaultCliente(raw, "getCliente");
-      // Compose catalog if claveInstitucion present.
-      let catalogo = {};
-      if (raw.claveInstitucion) {
-        try {
-          catalogo = await this.getJson(`/api/catalogo-institucions/clave/${encodeURIComponent(raw.claveInstitucion)}`);
-          requireNonDefaultCatalogo(catalogo, "getCliente.catalogo");
-        } catch { /* catalog composition is best-effort */ }
+      const cliente = (raw as Record<string, unknown>).cliente ?? raw;
+      requireNonDefaultCliente(cliente, "getCliente");
+      const catalogo = (raw as Record<string, unknown>).catalogoInstitucion ?? {};
+      if (catalogo && typeof catalogo === "object" && Object.keys(catalogo).length > 0) {
+        requireNonDefaultCatalogo(catalogo, "getCliente.catalogo");
       }
-      return ClientePerfil.fromJSON({ cliente: raw, catalogoInstitucion: catalogo });
+      return ClientePerfil.fromJSON({ cliente, catalogoInstitucion: catalogo });
     });
   }
 
@@ -91,7 +90,7 @@ export class RestPaymentTransport implements PaymentTransport {
 
   async getQrStatus(idc: string, idCuenta: bigint, opts?: CallOptions): Promise<JsonResponseView> {
     return this.dispatchRead("GetQrStatus", opts, async () => {
-      const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "", idCuenta: idCuenta.toString() });
+      const raw = await this.postJson("/api/payments/estatusmsjqr", { idc: idc ?? "" });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getQrStatus");
       requireValue(value, "getQrStatus");
       return jsonResponseViewFromValue(value);
@@ -102,7 +101,6 @@ export class RestPaymentTransport implements PaymentTransport {
     return this.dispatchRead("GetTelefonicoStatus", opts, async () => {
       // C4 body uses idMsjdeCobro (NOT idc) per backend3 DTO.
       const raw = await this.postJson("/api/payments/estatusmsjcobrotelefonico", {
-        idCuenta: idCuenta.toString(),
         idMsjdeCobro: idc ?? "",
       });
       const value = parseJsonOrFail(typeof raw === "string" ? raw : JSON.stringify(raw), "getTelefonicoStatus");

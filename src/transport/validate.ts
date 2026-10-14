@@ -19,12 +19,23 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim() !== "";
 }
 
+/**
+ * A structured-response id is safe iff it is a non-zero integer. JSON numbers arrive as `number`,
+ * while ts-proto-derived (gRPC/GraphQL) ids arrive as `bigint`; both must be accepted so a valid
+ * id is never mistaken for a defaulted (0) value.
+ */
+function isNonZeroId(v: unknown): boolean {
+  if (typeof v === "bigint") return v !== 0n;
+  if (typeof v === "number") return Number.isInteger(v) && v !== 0;
+  return false;
+}
+
 export function requireNonDefaultCliente(c: unknown, ctx: string): void {
   if (!c || typeof c !== "object") {
     throw new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, `${ctx}: cliente missing`);
   }
   const cliente = c as Record<string, unknown>;
-  if (typeof cliente.id !== "bigint" || cliente.id === 0n) {
+  if (!isNonZeroId(cliente.id)) {
     throw new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, `${ctx}: cliente.id missing or defaulted to 0`);
   }
   if (!isNonEmptyString(cliente.nombre)) {
@@ -40,7 +51,7 @@ export function requireNonDefaultCatalogo(c: unknown, ctx: string): void {
     throw new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, `${ctx}: catalogoInstitucion missing`);
   }
   const cat = c as Record<string, unknown>;
-  if (typeof cat.id !== "bigint" || cat.id === 0n) {
+  if (!isNonZeroId(cat.id)) {
     throw new TupagoInvalidArgumentException(grpc.status.INVALID_ARGUMENT, `${ctx}: catalogoInstitucion.id missing or defaulted to 0`);
   }
   if (!isNonEmptyString(cat.claveInstitucion)) {
