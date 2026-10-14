@@ -283,20 +283,47 @@ describe("Cross-transport READ retry attempt conformance (C5 GetCliente)", () =>
     return { get base() { return base; }, attempts: () => count, ready, close: () => server.close() };
   }
 
-  it("REST and GraphQL READ retry transient network failures and succeed after exactly 3 attempts", async () => {
-    const restSrv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), CLIENTE_OK);
-    const gqlSrv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), { data: { q: CLIENTE_OK } });
-    await Promise.all([restSrv.ready, gqlSrv.ready]);
+  it("REST and GraphQL READ retry transient network failures and succeed after exactly 3 primary attempts", async () => {
+    let restClienteAttempts = 0;
+    const restServer = http.createServer((req, res) => {
+      const url = req.url ?? "";
+      if (url.startsWith("/api/clientes/")) {
+        restClienteAttempts++;
+        if (restClienteAttempts < 3) {
+          req.socket.destroy();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(CLIENTE_OK.cliente));
+        return;
+      }
+      if (url.startsWith("/api/catalogo-institucions/clave/")) {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(CLIENTE_OK.catalogoInstitucion));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    let restBase = "";
+    await new Promise<void>((resolve) => restServer.listen(0, "127.0.0.1", () => {
+      const a = restServer.address();
+      restBase = `http://127.0.0.1:${typeof a === "object" && a ? a.port : 0}`;
+      resolve();
+    }));
 
-    const rest = createRestTransport({ target: restSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
+    const gqlSrv = startFlaky((n) => (n < 3 ? "destroy" : "respond"), { data: { q: CLIENTE_OK } });
+    await gqlSrv.ready;
+
+    const rest = createRestTransport({ target: restBase, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
     const gql = createGraphqlTransport({ target: gqlSrv.base, credentials: creds, readRetryPolicy: new ZeroDelayRetry(3) });
 
     const [r, q] = await Promise.all([rest.getCliente(CLIENTE_ID), gql.getCliente(CLIENTE_ID)]);
-    expect(restSrv.attempts()).toBe(3);
+    expect(restClienteAttempts).toBe(3);
     expect(gqlSrv.attempts()).toBe(3);
     expect(r.cliente?.nombre).toBe("Juan");
     expect(q.cliente?.nombre).toBe("Juan");
-    restSrv.close();
+    restServer.close();
     gqlSrv.close();
   });
 
