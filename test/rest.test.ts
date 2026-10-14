@@ -258,8 +258,8 @@ describe("REST transport — error mapping", () => {
     await expect(t.getCatalogo("123")).rejects.toBeInstanceOf(TupagoInvalidArgumentException);
   });
 
-  it("create 503 after dispatch -> UnknownOutcome", async () => {
-    raw(503, "application/json", JSON.stringify({ error: "down" }));
+  it("create 500 after dispatch -> UnknownOutcome", async () => {
+    raw(500, "application/json", JSON.stringify({ error: "down" }));
     const t = makeTransport();
     await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
   });

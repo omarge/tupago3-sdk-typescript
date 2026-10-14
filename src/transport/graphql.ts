@@ -179,7 +179,7 @@ export class GraphqlPaymentTransport implements PaymentTransport {
       }
       throw mapHttpStatusError(res.status, res.text);
     }
-    if (isCreate && [502, 503, 504].includes(res.status)) {
+    if (isCreate && res.status >= 500) {
       throw new TupagoUnknownOutcomeException(
         grpc.status.UNKNOWN,
         `ambiguous GraphQL create outcome: HTTP ${res.status} after dispatch`,

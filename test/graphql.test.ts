@@ -216,8 +216,8 @@ describe("GraphQL transport — error mapping", () => {
     await expect(t.getCatalogo("301")).rejects.toBeInstanceOf(TupagoInvalidArgumentException);
   });
 
-  it("create HTTP 503 -> UnknownOutcome", async () => {
-    responder = () => httpError(503, { errors: [{ message: "down" }] });
+  it("create HTTP 500 -> UnknownOutcome", async () => {
+    responder = () => httpError(500, { errors: [{ message: "down" }] });
     const t = makeTransport();
     await expect(t.createQr(QR_REQ)).rejects.toBeInstanceOf(TupagoUnknownOutcomeException);
   });
