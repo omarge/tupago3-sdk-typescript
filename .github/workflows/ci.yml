@@ -85,4 +85,4 @@ jobs:
           cache: npm
       - run: npm ci
       - name: npm audit (prod only)
-        run: npm audit --omit=dev || true
+        run: npm audit --omit=dev
